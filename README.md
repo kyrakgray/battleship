@@ -52,6 +52,15 @@ Live: https://kyrakgray.github.io/battleship/
 - **New Game** returns to ship placement with fully cleared state — no
   leftover ships, shots, or log entries.
 
+### Onboarding and game state
+
+- A **How to play** panel explains placement, rotation, and firing on first
+  load. It closes once the game starts and can be reopened from the controls.
+- A status banner above the controls always names the current state — placing,
+  your turn, the opponent's turn, or game over — with the result of the last
+  shot underneath and a colored edge per state.
+- The win/loss result is shown in the banner at large type when the game ends.
+
 ### Opponent targeting — hunt and target
 
 `chooseOpponentTarget(board, rng)` in `game.js` returns a `{ row, col }`

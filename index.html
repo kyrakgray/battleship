@@ -4,15 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Battleship</title>
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 <header>
   <h1>Battleship</h1>
-  <p class="tagline" id="phase-label">Ship placement phase</p>
+  <p class="tagline">You versus the computer — sink all five enemy ships first.</p>
 </header>
 
 <main>
+  <section class="how-to" id="how-to">
+    <h2>How to play</h2>
+    <ol>
+      <li><strong>Place your fleet.</strong> Pick a ship, press <kbd>R</kbd> to switch
+        between horizontal and vertical, then click a square on <em>Your Fleet</em> to
+        drop it. Ships can't overlap or hang off the edge. <em>Place Randomly</em>
+        does it all for you.</li>
+      <li><strong>Start the game.</strong> The button unlocks once all five ships are
+        down. The computer hides its own fleet in Enemy Waters and you shoot first.</li>
+      <li><strong>Fire.</strong> Click a square on <em>Enemy Waters</em>. Red is a hit,
+        white is a miss, and you're told which ship you struck or sank. The opponent
+        then takes its shot at your fleet.</li>
+      <li><strong>Win.</strong> Sink all five enemy ships before it sinks yours. The
+        banner at the top always says whose turn it is and what just happened.</li>
+    </ol>
+    <button id="btn-how-to-close" type="button">Got it — let's play</button>
+  </section>
+
+  <section class="status" id="status-bar">
+    <p class="turn" id="phase-label">Ship placement phase</p>
+    <p class="message" id="message" role="status" aria-live="polite"></p>
+  </section>
+
   <section class="controls">
     <div class="placement-controls" id="placement-controls">
       <div class="fleet" id="fleet-list" role="listbox" aria-label="Fleet"></div>
@@ -31,7 +54,7 @@
         <button id="btn-new-game" type="button">New Game</button>
       </div>
     </div>
-    <p class="message" id="message" role="status" aria-live="polite"></p>
+    <button id="btn-how-to-open" class="link-btn" type="button">How to play</button>
   </section>
 
   <section class="panel log-panel">
@@ -59,7 +82,7 @@
   </section>
 </main>
 
-<script src="game.js?v=9"></script>
-<script src="ui.js?v=9"></script>
+<script src="game.js?v=10"></script>
+<script src="ui.js?v=10"></script>
 </body>
 </html>

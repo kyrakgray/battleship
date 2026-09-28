@@ -36,6 +36,10 @@
     btnReveal: document.getElementById('btn-reveal'),
     statusPlayer: document.getElementById('status-player'),
     statusEnemy: document.getElementById('status-enemy'),
+    statusBar: document.getElementById('status-bar'),
+    howTo: document.getElementById('how-to'),
+    btnHowToOpen: document.getElementById('btn-how-to-open'),
+    btnHowToClose: document.getElementById('btn-how-to-close'),
     log: document.getElementById('log')
   };
 
@@ -231,10 +235,15 @@
     els.placementControls.classList.toggle('hidden', !placing);
     els.battleControls.classList.toggle('hidden', placing);
     els.phaseLabel.textContent =
-      placing ? 'Ship placement phase'
-        : phase === PHASES.OVER ? 'Game over'
+      placing ? 'Place your fleet'
+        : phase === PHASES.OVER
+          ? (state.winner === 'player' ? 'Game over — you won' : 'Game over — you lost')
           : phase === PHASES.PLAYER_TURN ? 'Your turn — fire at Enemy Waters'
             : 'Opponent is taking their turn…';
+    els.statusBar.className = 'status' +
+      (phase === PHASES.PLAYER_TURN ? ' your-turn'
+        : phase === PHASES.OPPONENT_TURN ? ' waiting'
+          : phase === PHASES.OVER ? ' over' : '');
     renderEnemyBoard();
   }
 
@@ -330,6 +339,7 @@
     state.winner = null;
     state.revealEnemy = false;
     state.log = [];
+    els.howTo.classList.add('hidden');
     els.btnReveal.classList.add('hidden');
     addLog('system', 'Battle stations. You have the first shot.');
     setPhase(PHASES.PLAYER_TURN);
@@ -344,7 +354,7 @@
       ? 'You win! The enemy fleet is sunk.'
       : 'You lose. Your fleet is sunk.';
     addLog('system', text);
-    setMessage(text, winner === 'player' ? 'info' : 'error');
+    setMessage(text, (winner === 'player' ? 'info' : 'error') + ' result');
     els.btnReveal.classList.toggle('hidden', winner === 'player');
     els.btnReveal.textContent = 'Reveal Enemy Ship Locations';
     render();
@@ -427,6 +437,7 @@
     setPhase(PHASES.PLACEMENT);
     setOrientation(state.orientation);
     updateStartButton();
+    setMessage('Place all five ships to begin.', 'info');
     render();
 
     els.playerBoard.addEventListener('mouseover', function (event) {
@@ -490,6 +501,15 @@
         ? 'Hide Enemy Ship Locations'
         : 'Reveal Enemy Ship Locations';
       renderEnemyBoard();
+    });
+
+    els.btnHowToClose.addEventListener('click', function () {
+      els.howTo.classList.add('hidden');
+    });
+
+    els.btnHowToOpen.addEventListener('click', function () {
+      els.howTo.classList.remove('hidden');
+      els.howTo.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     els.btnStart.addEventListener('click', startGame);
