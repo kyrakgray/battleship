@@ -10,7 +10,8 @@ in a browser and it runs.
   **Enemy Waters** (right, rendered but empty and non-interactive).
   Rows are labeled A–J top to bottom, columns 1–10 left to right.
 - A five-ship fleet the player places on their own grid: Carrier (5),
-  Battleship (4), Cruiser (3), Submarine (3), Destroyer (2).
+  Battleship (4), Cruiser (3), Submarine (3), Destroyer (2). Each ship has its
+  own color, shown in the fleet menu and on the grid once placed.
 - Manual placement: select a ship, press <kbd>R</kbd> to toggle
   horizontal/vertical, click a square to place it. A live preview follows the
   cursor — green when the placement is valid, red when it is not.

@@ -59,7 +59,7 @@ main {
   font-size: 14px;
 }
 .ship-btn:hover { background: #1a4372; }
-.ship-btn.selected { border-color: #f0c419; }
+.ship-btn.selected { border-color: var(--ship-color, #f0c419); }
 .ship-btn.placed { opacity: 0.55; text-decoration: line-through; }
 .ship-btn .pips { display: flex; gap: 2px; }
 .ship-btn .pip {
@@ -121,7 +121,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   cursor: pointer;
 }
 .board:not(.disabled) .cell:hover { background: var(--ocean-light); }
-.cell.ship { background: var(--ship); border-color: var(--ship-dark); }
+.cell.ship { border-color: rgba(0, 0, 0, 0.45); }
 .cell.preview-valid { background: var(--valid); }
 .cell.preview-invalid { background: var(--invalid); }
 

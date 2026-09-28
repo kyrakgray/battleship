@@ -11,11 +11,11 @@
   var ROW_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
   var SHIP_TYPES = [
-    { id: 'carrier', name: 'Carrier', length: 5 },
-    { id: 'battleship', name: 'Battleship', length: 4 },
-    { id: 'cruiser', name: 'Cruiser', length: 3 },
-    { id: 'submarine', name: 'Submarine', length: 3 },
-    { id: 'destroyer', name: 'Destroyer', length: 2 }
+    { id: 'carrier', name: 'Carrier', length: 5, color: '#f0c419' },
+    { id: 'battleship', name: 'Battleship', length: 4, color: '#e9762f' },
+    { id: 'cruiser', name: 'Cruiser', length: 3, color: '#2fa8c9' },
+    { id: 'submarine', name: 'Submarine', length: 3, color: '#8f6bd6' },
+    { id: 'destroyer', name: 'Destroyer', length: 2, color: '#d76ba6' }
   ];
 
   var ORIENTATIONS = { HORIZONTAL: 'horizontal', VERTICAL: 'vertical' };

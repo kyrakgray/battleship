@@ -65,6 +65,7 @@
       var placed = Boolean(state.board.ships[type.id]);
       var btn = document.createElement('button');
       btn.type = 'button';
+      btn.style.setProperty('--ship-color', type.color);
       btn.className = 'ship-btn' +
         (state.selectedShipId === type.id ? ' selected' : '') +
         (placed ? ' placed' : '');
@@ -79,6 +80,7 @@
       for (var i = 0; i < type.length; i++) {
         var pip = document.createElement('span');
         pip.className = 'pip';
+        pip.style.background = type.color;
         pips.appendChild(pip);
       }
       btn.appendChild(pips);
@@ -94,7 +96,9 @@
     for (var row = 0; row < B.BOARD_SIZE; row++) {
       for (var col = 0; col < B.BOARD_SIZE; col++) {
         var cell = playerCells[cellKey(row, col)];
-        cell.className = 'cell' + (state.board.grid[row][col] ? ' ship' : '');
+        var shipId = state.board.grid[row][col];
+        cell.className = 'cell' + (shipId ? ' ship' : '');
+        cell.style.background = shipId ? B.getShipType(shipId).color : '';
       }
     }
     renderPreview();
@@ -114,6 +118,7 @@
       var cell = playerCells[cellKey(pos.row, pos.col)];
       if (!cell) return;
       cell.classList.add(result.valid ? 'preview-valid' : 'preview-invalid');
+      cell.style.background = '';
     });
   }
 
