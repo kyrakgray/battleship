@@ -289,20 +289,220 @@
     return targets;
   }
 
-  /**
-   * Opponent targeting. Takes the board being fired upon and returns a
-   * coordinate { row, col }, or null when no square is left.
-   *
-   * Placeholder strategy: uniformly random among un-fired squares. Replacing
-   * this single function with hunt-and-target is enough to change the
-   * opponent's behaviour; turn handling and rendering do not depend on how
-   * the coordinate is chosen.
-   */
-  function chooseOpponentTarget(board, rng) {
+  /** Uniformly random un-fired square: the opponent's hunt-mode strategy. */
+  function chooseRandomTarget(board, rng) {
     var random = rng || Math.random;
     var targets = availableTargets(board);
     if (!targets.length) return null;
     return targets[Math.floor(random() * targets.length)];
+  }
+
+  /* ---------- hunt-and-target opponent ----------
+   *
+   * The opponent knows only what a human opponent would: which squares it has
+   * fired on, whether each was a hit or a miss, and which ships have been
+   * announced sunk (with their published lengths). It never reads ship
+   * positions. That knowledge is rebuilt from `board.shots` on every call and
+   * cached per board, so the public signature stays
+   * `chooseOpponentTarget(board, rng)`.
+   */
+
+  var DIRECTIONS = [
+    { dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }
+  ];
+
+  var opponentMemory = new WeakMap();
+
+  function cellKey(row, col) {
+    return row + ',' + col;
+  }
+
+  function newMemory() {
+    return { fired: {}, openHits: [], queue: [], sunkSeen: {} };
+  }
+
+  /** A board whose shots were cleared (New Game) invalidates past memory. */
+  function memoryIsStale(board, memory) {
+    for (var key in memory.fired) {
+      if (!Object.prototype.hasOwnProperty.call(memory.fired, key)) continue;
+      var parts = key.split(',');
+      if (board.shots[Number(parts[0])][Number(parts[1])] === null) return true;
+    }
+    return false;
+  }
+
+  function memoryFor(board) {
+    var memory = opponentMemory.get(board);
+    if (!memory || memoryIsStale(board, memory)) {
+      memory = newMemory();
+      opponentMemory.set(board, memory);
+    }
+    return memory;
+  }
+
+  function enqueueNeighbors(board, memory, hit) {
+    DIRECTIONS.forEach(function (dir) {
+      var row = hit.row + dir.dr;
+      var col = hit.col + dir.dc;
+      if (!canFireAt(board, row, col)) return;
+
+      var key = cellKey(row, col);
+      for (var i = 0; i < memory.queue.length; i++) {
+        if (memory.queue[i].key === key) {
+          memory.queue[i].origins[cellKey(hit.row, hit.col)] = true;
+          return;
+        }
+      }
+      var origins = {};
+      origins[cellKey(hit.row, hit.col)] = true;
+      memory.queue.push({ key: key, row: row, col: col, origins: origins });
+    });
+  }
+
+  /** Folds any shots taken since the last call into the opponent's memory. */
+  function recordShots(board, memory) {
+    for (var row = 0; row < BOARD_SIZE; row++) {
+      for (var col = 0; col < BOARD_SIZE; col++) {
+        var shot = board.shots[row][col];
+        var key = cellKey(row, col);
+        if (!shot || memory.fired[key]) continue;
+
+        memory.fired[key] = shot;
+        if (shot === SHOT.HIT) {
+          var hit = { row: row, col: col, key: key };
+          memory.openHits.push(hit);
+          enqueueNeighbors(board, memory, hit);
+        }
+      }
+    }
+  }
+
+  function findOpenHit(memory, row, col) {
+    for (var i = 0; i < memory.openHits.length; i++) {
+      if (memory.openHits[i].row === row && memory.openHits[i].col === col) {
+        return memory.openHits[i];
+      }
+    }
+    return null;
+  }
+
+  /** The straight run of open hits through `hit` along one axis. */
+  function runThrough(memory, hit, dr, dc) {
+    var run = [hit];
+    var step;
+    var next;
+    for (step = 1; ; step++) {
+      next = findOpenHit(memory, hit.row + dr * step, hit.col + dc * step);
+      if (!next) break;
+      run.push(next);
+    }
+    for (step = 1; ; step++) {
+      next = findOpenHit(memory, hit.row - dr * step, hit.col - dc * step);
+      if (!next) break;
+      run.unshift(next);
+    }
+    return run;
+  }
+
+  /**
+   * A ship of `length` was announced sunk. Attribute that many open hits to
+   * it — the straight run that fits it, newest hits first — and retire only
+   * the queued squares that came from those hits. Hits on a different,
+   * still-floating ship (adjacent ships are the awkward case) stay open, so
+   * the opponent keeps hunting it instead of falling back to random fire.
+   */
+  function resolveSunkShip(memory, length) {
+    var candidates = [];
+    for (var i = memory.openHits.length - 1; i >= 0; i--) {
+      var hit = memory.openHits[i];
+      candidates.push(runThrough(memory, hit, 0, 1));
+      candidates.push(runThrough(memory, hit, 1, 0));
+      candidates.push([hit]);
+    }
+
+    var chosen = null;
+    for (var c = 0; c < candidates.length && !chosen; c++) {
+      if (candidates[c].length === length) chosen = candidates[c];
+    }
+    if (!chosen) {
+      for (var d = 0; d < candidates.length && !chosen; d++) {
+        if (candidates[d].length > length) chosen = candidates[d].slice(-length);
+      }
+    }
+    if (!chosen) chosen = memory.openHits.slice(-length);
+    if (!chosen.length) return;
+
+    var retired = {};
+    chosen.forEach(function (hit) {
+      retired[hit.key] = true;
+    });
+
+    memory.openHits = memory.openHits.filter(function (hit) {
+      return !retired[hit.key];
+    });
+
+    memory.queue = memory.queue.filter(function (entry) {
+      return Object.keys(entry.origins).some(function (origin) {
+        return !retired[origin];
+      });
+    });
+  }
+
+  function recordSinks(board, memory) {
+    sunkShipIds(board).forEach(function (shipId) {
+      if (memory.sunkSeen[shipId]) return;
+      memory.sunkSeen[shipId] = true;
+      resolveSunkShip(memory, getShipType(shipId).length);
+    });
+  }
+
+  /**
+   * True when firing here extends a line of two or more known hits. Ships are
+   * straight, so continuing a confirmed axis beats a perpendicular neighbor.
+   */
+  function extendsKnownLine(memory, entry) {
+    return DIRECTIONS.some(function (dir) {
+      return findOpenHit(memory, entry.row - dir.dr, entry.col - dir.dc) &&
+        findOpenHit(memory, entry.row - dir.dr * 2, entry.col - dir.dc * 2);
+    });
+  }
+
+  function takeFromQueue(board, memory, random) {
+    memory.queue = memory.queue.filter(function (entry) {
+      return canFireAt(board, entry.row, entry.col);
+    });
+    if (!memory.queue.length) return null;
+
+    var preferred = memory.queue.filter(function (entry) {
+      return extendsKnownLine(memory, entry);
+    });
+    var pool = preferred.length ? preferred : memory.queue;
+    var pick = pool[Math.floor(random() * pool.length)];
+
+    memory.queue = memory.queue.filter(function (entry) {
+      return entry.key !== pick.key;
+    });
+    return { row: pick.row, col: pick.col };
+  }
+
+  /**
+   * Opponent targeting. Takes the board being fired upon and returns a
+   * coordinate { row, col }, or null when no square is left. `rng` is
+   * optional and defaults to Math.random, matching `placeFleetRandomly`.
+   *
+   * Hunt-and-target: fire from the queue of squares around unresolved hits
+   * when it is non-empty, otherwise fire at a uniformly random un-fired
+   * square. Turn handling and rendering do not depend on how the coordinate
+   * is chosen.
+   */
+  function chooseOpponentTarget(board, rng) {
+    var random = rng || Math.random;
+    var memory = memoryFor(board);
+
+    recordShots(board, memory);
+    recordSinks(board, memory);
+
+    return takeFromQueue(board, memory, random) || chooseRandomTarget(board, random);
   }
 
   function toggleOrientation(orientation) {
@@ -336,6 +536,7 @@
     sunkShipIds: sunkShipIds,
     isFleetDefeated: isFleetDefeated,
     availableTargets: availableTargets,
+    chooseRandomTarget: chooseRandomTarget,
     chooseOpponentTarget: chooseOpponentTarget,
     toggleOrientation: toggleOrientation
   };

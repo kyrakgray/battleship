@@ -50,16 +50,31 @@ Live: https://kyrakgray.github.io/battleship/
 - **New Game** returns to ship placement with fully cleared state — no
   leftover ships, shots, or log entries.
 
-### Opponent targeting (placeholder)
+### Opponent targeting — hunt and target
 
-`chooseOpponentTarget(board, rng)` in `game.js` picks a uniformly random square
-that has not been fired on and returns `{ row, col }`. It is deliberately
-isolated from turn handling and rendering so it can be swapped for a
-hunt-and-target algorithm without touching the UI.
+`chooseOpponentTarget(board, rng)` in `game.js` returns a `{ row, col }`
+coordinate and is the opponent's whole strategy; turn handling and rendering
+do not depend on how it picks. `rng` is optional and defaults to `Math.random`,
+so seeded runs are reproducible.
+
+- **Hunt mode** (default): fire at a uniformly random un-fired square.
+- **Target mode**: a hit queues its orthogonal neighbours (on-board and
+  un-fired). While the queue is non-empty the opponent fires from it.
+- **Directional preference**: once two hits line up, squares extending that
+  axis are fired before perpendicular neighbours — ships are straight.
+- **Sink handling**: when a ship is announced sunk, only the queued squares
+  that came from hits on *that* ship are retired. Hits on a different,
+  still-floating ship stay in the queue, so hitting two adjacent ships and
+  sinking one does not reset the opponent to hunt mode.
+
+The opponent never reads ship positions. It works from its own shot history
+(`board.shots`) plus the sink announcements a human opponent would also hear,
+cached per board.
 
 ## Not yet implemented
 
-- A smarter AI (hunt-and-target); the opponent currently fires at random
+- Probability-density targeting or parity-based hunting (hunt mode is still
+  uniformly random)
 - Scoring, statistics, or match history
 - Persistence of game state between page loads
 - Sound, animation, or mobile-specific layout
@@ -73,7 +88,8 @@ hunt-and-target algorithm without touching the UI.
 | `game.js` | Game state and rules — plain data structures, no DOM access |
 | `ui.js` | Rendering and event wiring; delegates all rules to `game.js` |
 | `tests/placement-tests.html` | Placement assertions over `game.js` |
-| `tests/simulate-games.html` | 100-game random-vs-random simulation |
+| `tests/simulate-games.html` | 100-game simulation of the full turn loop |
+| `tests/ai-benchmark.html` | 1,000-game comparison of random vs hunt-and-target |
 
 Board state is a plain object (`{ size, grid, shots, ships }`) where
 `grid[row][col]` holds a ship id or `null` and `shots[row][col]` holds `'hit'`,
@@ -84,12 +100,17 @@ inline in event handlers.
 
 ## Checks
 
-Open either file in a browser:
+Open any of these files in a browser:
 
 - `tests/placement-tests.html` — overlap and out-of-bounds rejection, board
   clearing, and 10,000 random fleets (in-bounds, non-overlapping, exactly 17
   cells).
-- `tests/simulate-games.html` — simulates 100 complete games with both sides
-  firing at random and asserts each ends with exactly one winner within 200
-  total turns. Latest run: 100/100 games had exactly one winner, max 199 turns,
-  average 185.9.
+- `tests/simulate-games.html` — simulates 100 complete games and asserts each
+  ends with exactly one winner within 200 total turns. Latest run: 100/100 had
+  exactly one winner, max 168 turns.
+- `tests/ai-benchmark.html` — 1,000 games per strategy against randomly placed
+  fleets, asserting no square is fired on twice and every game terminates.
+  Latest run: random targeting averages **95.6** shots to clear a fleet,
+  hunt-and-target averages **60.4** (36.8% fewer). It also checks the
+  adjacent-ship case: sinking one of two touching ships keeps the opponent
+  hunting the other.

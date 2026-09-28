@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Battleship — targeting benchmark</title>
+</head>
+<body>
+<h1>Targeting benchmark</h1>
+<p>1,000 games per strategy against randomly placed fleets. Reports the average
+number of shots needed to sink all five ships, and asserts no square is ever
+fired on twice and every game terminates.</p>
+<pre id="out">running…</pre>
+<script src="../game.js"></script>
+<script>
+(function () {
+  var B = window.Battleship;
+  var GAMES = 1000;
+  var MAX_SHOTS = 100;
+
+  /** Deterministic RNG so both strategies face the same fleets and dice. */
+  function seeded(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
+
+  function runGame(chooseTarget, rng) {
+    var board = B.createBoard();
+    B.placeFleetRandomly(board, rng);
+
+    var seen = {};
+    var shots = 0;
+
+    while (shots < MAX_SHOTS) {
+      var target = chooseTarget(board, rng);
+      if (!target) return { error: 'ran out of targets after ' + shots + ' shots' };
+
+      var key = target.row + ',' + target.col;
+      if (seen[key]) return { error: 'repeat shot at ' + B.coordLabel(target.row, target.col) };
+      seen[key] = true;
+
+      var result = B.fireAt(board, target.row, target.col);
+      shots++;
+      if (!result.legal) return { error: 'illegal shot at ' + B.coordLabel(target.row, target.col) };
+      if (result.fleetDefeated) return { shots: shots };
+    }
+    return { error: 'fleet not sunk within ' + MAX_SHOTS + ' shots' };
+  }
+
+  function benchmark(label, chooseTarget) {
+    var total = 0;
+    var worst = 0;
+    var best = MAX_SHOTS;
+    var errors = [];
+
+    for (var i = 0; i < GAMES; i++) {
+      var game = runGame(chooseTarget, seeded(i + 1));
+      if (game.error) {
+        errors.push('game ' + (i + 1) + ': ' + game.error);
+        continue;
+      }
+      total += game.shots;
+      worst = Math.max(worst, game.shots);
+      best = Math.min(best, game.shots);
+    }
+
+    var completed = GAMES - errors.length;
+    return {
+      label: label,
+      average: total / Math.max(completed, 1),
+      best: best,
+      worst: worst,
+      completed: completed,
+      errors: errors
+    };
+  }
+
+  var random = benchmark('random targeting', B.chooseRandomTarget);
+  var hunt = benchmark('hunt-and-target', B.chooseOpponentTarget);
+
+  function describe(r) {
+    return r.label + ': average ' + r.average.toFixed(1) + ' shots ' +
+      '(best ' + r.best + ', worst ' + r.worst + ', ' +
+      r.completed + '/' + GAMES + ' games completed' +
+      (r.errors.length ? ', ' + r.errors.length + ' FAILURES' : '') + ')';
+  }
+
+  /**
+   * Adjacent ships: sinking one must not abandon the hit on the other.
+   * Destroyer at A1–A2, cruiser at B1–B3; the opponent hits B1, then sinks
+   * the destroyer, and must keep working around B1.
+   */
+  function adjacentShipCheck() {
+    var board = B.createBoard();
+    B.placeShip(board, 'destroyer', 0, 0, B.ORIENTATIONS.HORIZONTAL);
+    B.placeShip(board, 'cruiser', 1, 0, B.ORIENTATIONS.HORIZONTAL);
+
+    B.fireAt(board, 1, 0);
+    B.fireAt(board, 0, 0);
+    var sink = B.fireAt(board, 0, 1);
+    if (!sink.sunk || sink.shipId !== 'destroyer') return 'setup failed: destroyer not sunk';
+
+    var target = B.chooseOpponentTarget(board, seeded(7));
+    var pursuesCruiser = (target.row === 1 && target.col === 1) ||
+      (target.row === 2 && target.col === 0);
+    return pursuesCruiser
+      ? 'adjacent-ship check: kept hunting the cruiser at ' + B.coordLabel(target.row, target.col)
+      : 'ADJACENT-SHIP CHECK FAILED: went to ' + B.coordLabel(target.row, target.col);
+  }
+
+  var adjacency = adjacentShipCheck();
+  var lines = [describe(random), describe(hunt), adjacency];
+  var improvement = (1 - hunt.average / random.average) * 100;
+  lines.push('improvement: ' + improvement.toFixed(1) + '% fewer shots');
+  lines.push('no repeat shots, all games terminated: ' +
+    (random.errors.length === 0 && hunt.errors.length === 0 ? 'yes' : 'NO'));
+
+  var ok = adjacency.indexOf('FAILED') === -1 && adjacency.indexOf('setup failed') === -1 &&
+    random.errors.length === 0 && hunt.errors.length === 0 &&
+    random.completed === GAMES && hunt.completed === GAMES &&
+    hunt.average < random.average * 0.85;
+  lines.push(ok ? 'BENCHMARK PASSED' : 'BENCHMARK FAILED');
+  if (random.errors.length) lines.push(random.errors.slice(0, 5).join('\n'));
+  if (hunt.errors.length) lines.push(hunt.errors.slice(0, 5).join('\n'));
+
+  document.getElementById('out').textContent = lines.join('\n');
+})();
+</script>
+</body>
+</html>
