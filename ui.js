@@ -16,7 +16,8 @@
     orientation: B.ORIENTATIONS.HORIZONTAL,
     hover: null,
     log: [],
-    winner: null
+    winner: null,
+    revealEnemy: false
   };
 
   var els = {
@@ -32,6 +33,7 @@
     btnReset: document.getElementById('btn-reset'),
     btnStart: document.getElementById('btn-start'),
     btnNewGame: document.getElementById('btn-new-game'),
+    btnReveal: document.getElementById('btn-reveal'),
     statusPlayer: document.getElementById('status-player'),
     statusEnemy: document.getElementById('status-enemy'),
     log: document.getElementById('log')
@@ -123,13 +125,19 @@
     renderPreview();
   }
 
-  /** Enemy grid: shots only. Opponent ship positions never reach the DOM. */
+  /**
+   * Enemy grid: shots only, so opponent ship positions never reach the DOM —
+   * except once the game is over and the player asks to reveal them.
+   */
   function renderEnemyBoard() {
     for (var row = 0; row < B.BOARD_SIZE; row++) {
       for (var col = 0; col < B.BOARD_SIZE; col++) {
         var cell = enemyCells[cellKey(row, col)];
         var shot = state.enemyBoard.shots[row][col];
-        cell.className = 'cell' + (shot ? ' ' + shot : '');
+        var shipId = state.revealEnemy ? state.enemyBoard.grid[row][col] : null;
+        var reveal = Boolean(shipId) && shot !== B.SHOT.HIT;
+        cell.className = 'cell' + (shot ? ' ' + shot : '') + (reveal ? ' revealed' : '');
+        cell.style.background = reveal ? B.getShipType(shipId).color : '';
       }
     }
     els.enemyBoard.classList.toggle('disabled', state.phase !== PHASES.PLAYER_TURN);
@@ -304,7 +312,9 @@
     B.placeFleetRandomly(state.enemyBoard);
     state.hover = null;
     state.winner = null;
+    state.revealEnemy = false;
     state.log = [];
+    els.btnReveal.classList.add('hidden');
     addLog('system', 'Battle stations. You have the first shot.');
     setPhase(PHASES.PLAYER_TURN);
     setMessage('Your turn. Fire at Enemy Waters.', 'info');
@@ -319,6 +329,8 @@
       : 'You lose. Your fleet is sunk.';
     addLog('system', text);
     setMessage(text, winner === 'player' ? 'info' : 'error');
+    els.btnReveal.classList.remove('hidden');
+    els.btnReveal.textContent = 'Reveal Enemy Ship Locations';
     render();
   }
 
@@ -382,6 +394,8 @@
     state.hover = null;
     state.log = [];
     state.winner = null;
+    state.revealEnemy = false;
+    els.btnReveal.classList.add('hidden');
     setPhase(PHASES.PLACEMENT);
     setOrientation(state.orientation);
     updateStartButton();
@@ -451,6 +465,15 @@
       renderFleet();
       renderPlayerBoard();
       updateStartButton();
+    });
+
+    els.btnReveal.addEventListener('click', function () {
+      if (state.phase !== PHASES.OVER) return;
+      state.revealEnemy = !state.revealEnemy;
+      els.btnReveal.textContent = state.revealEnemy
+        ? 'Hide Enemy Ship Locations'
+        : 'Reveal Enemy Ship Locations';
+      renderEnemyBoard();
     });
 
     els.btnStart.addEventListener('click', startGame);

@@ -133,6 +133,8 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .board.disabled .cell.hit:hover { background: #c0392b; }
 .board.disabled .cell.miss:hover { background: #eef3f7; }
 
+.cell.revealed { border-color: rgba(0, 0, 0, 0.45); opacity: 0.85; }
+
 .hidden { display: none; }
 
 .panels {
