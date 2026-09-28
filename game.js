@@ -147,6 +147,11 @@
     return true;
   }
 
+  /**
+   * Empties a board in place. Boards are reused between games, so the
+   * opponent's memory of this board is dropped along with the shots it was
+   * derived from.
+   */
   function clearBoard(board) {
     for (var row = 0; row < BOARD_SIZE; row++) {
       for (var col = 0; col < BOARD_SIZE; col++) {
@@ -155,6 +160,7 @@
       }
     }
     board.ships = {};
+    forgetOpponentMemory(board);
     return board;
   }
 
@@ -331,6 +337,10 @@
     return false;
   }
 
+  function forgetOpponentMemory(board) {
+    opponentMemory['delete'](board);
+  }
+
   function memoryFor(board) {
     var memory = opponentMemory.get(board);
     if (!memory || memoryIsStale(board, memory)) {
@@ -479,9 +489,9 @@
     var pool = preferred.length ? preferred : memory.queue;
     var pick = pool[Math.floor(random() * pool.length)];
 
-    memory.queue = memory.queue.filter(function (entry) {
-      return entry.key !== pick.key;
-    });
+    // The pick stays queued until it has actually been fired on: the filter
+    // above retires it once the shot lands, so calling this more than once
+    // per turn cannot silently drop a target.
     return { row: pick.row, col: pick.col };
   }
 
@@ -538,6 +548,7 @@
     availableTargets: availableTargets,
     chooseRandomTarget: chooseRandomTarget,
     chooseOpponentTarget: chooseOpponentTarget,
+    forgetOpponentMemory: forgetOpponentMemory,
     toggleOrientation: toggleOrientation
   };
 

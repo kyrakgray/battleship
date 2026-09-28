@@ -1,127 +1,107 @@
 # Battleship
 
-A browser-based Battleship game against a computer opponent, built with vanilla
-HTML, CSS, and JavaScript. No frameworks, no build step, no package manager, no
-backend: open `index.html` in a browser and it runs.
+A browser-based game of Battleship: you place a five-ship fleet on a 10×10 grid
+and trade shots with a computer opponent until one fleet is sunk. Built with
+vanilla HTML, CSS, and JavaScript — no frameworks, no build step, no package
+manager, no backend.
 
-Live: https://kyrakgray.github.io/battleship/
+**Play it live: https://kyrakgray.github.io/battleship/**
 
-## What is built so far
+## Running it locally
 
-### Placement
+Clone the repo and open `index.html` in any modern browser:
 
-- Two 10×10 grids side by side: **Your Fleet** (left) and **Enemy Waters**
-  (right). Rows are labeled A–J top to bottom, columns 1–10 left to right.
-- A five-ship fleet the player places on their own grid: Carrier (5),
-  Battleship (4), Cruiser (3), Submarine (3), Destroyer (2). Each ship has its
-  own color, shown in the fleet menu and on the grid once placed.
-- Manual placement: select a ship, press <kbd>R</kbd> to toggle
-  horizontal/vertical, click a square to place it. A live preview follows the
-  cursor — green when the placement is valid, red when it is not.
-- Enforced placement rules: horizontal or vertical only (never diagonal), no
-  overlapping ships, no ship extending past the edge of the grid. Invalid
-  placements are rejected with a visible message stating the reason.
-- **Place Randomly** and **Reset Placement** buttons.
-- **Start Game** is disabled until all five ships are placed.
+```sh
+git clone https://github.com/kyrakgray/battleship.git
+cd battleship
+open index.html        # macOS; use xdg-open on Linux, start on Windows
+```
 
-### Game loop
+There is nothing to install or compile. A `file://` load is enough; the tests
+work the same way. If you prefer a server, `python3 -m http.server` in the repo
+root and browse to `http://localhost:8000/`.
 
-- **Start Game** places the opponent's five ships randomly (using the same
-  placement/validation functions as the player's fleet). Opponent ship
-  positions are never rendered or exposed in the DOM — the enemy grid is drawn
-  from shot results only. The player takes the first shot.
-- Fire by clicking a square on Enemy Waters. Hits are red, misses are white,
-  and both persist on the grid.
-- Clicking an already-fired square does nothing: no message, no turn consumed.
-- A hit names the struck ship ("Hit. Cruiser."), and sinking one announces it
-  by name ("You sank my Battleship!", and the equivalent when the opponent
-  sinks one of yours).
-- A message log shows the last four moves and keeps every turn of the current
-  game, so earlier shots can be scrolled back to.
-- A fleet status panel lists all five ships for each side, with sunk ships
-  struck through.
-- After the player's shot resolves the opponent fires ~600ms later, with a
-  message while its turn resolves. Both grids are non-interactive during that
-  window; clicks are ignored, not queued.
-- The game ends when either fleet is completely sunk: a win or loss result is
-  shown and further input is ignored.
-- **Reveal Enemy Ship Locations** appears only after a loss (a win already
-  exposes every enemy square) and toggles
-  the enemy fleet into view: squares the player hit stay red, and the squares
-  they never found show in their ship's color.
-- **New Game** returns to ship placement with fully cleared state — no
-  leftover ships, shots, or log entries.
+## How to play
 
-### Onboarding and game state
+Select a ship, press <kbd>R</kbd> to toggle horizontal/vertical, and click a
+square on **Your Fleet** to drop it — a preview follows the cursor, green when
+the placement is legal and red when it is not. **Place Randomly** fills the
+board for you and **Reset Placement** clears it. **Start Game** unlocks once
+all five ships are down; you fire first by clicking a square on **Enemy
+Waters**. Red is a hit, white is a miss, the message names the ship you struck
+or sank, and the banner above the boards always says whose turn it is and what
+just happened. Sink all five enemy ships to win.
 
-- A **How to play** panel explains placement, rotation, and firing on first
-  load. It closes once the game starts and can be reopened from the controls.
-- A status banner between the log and the boards always names the current state — placing,
-  your turn, the opponent's turn, or game over — with the result of the last
-  shot underneath and a colored edge per state.
-- The win/loss result is shown in the banner at large type when the game ends.
+## File structure
 
-### Opponent targeting — hunt and target
-
-`chooseOpponentTarget(board, rng)` in `game.js` returns a `{ row, col }`
-coordinate and is the opponent's whole strategy; turn handling and rendering
-do not depend on how it picks. `rng` is optional and defaults to `Math.random`,
-so seeded runs are reproducible.
-
-- **Hunt mode** (default): fire at a uniformly random un-fired square.
-- **Target mode**: a hit queues its orthogonal neighbours (on-board and
-  un-fired). While the queue is non-empty the opponent fires from it.
-- **Directional preference**: once two hits line up, squares extending that
-  axis are fired before perpendicular neighbours — ships are straight.
-- **Sink handling**: when a ship is announced sunk, only the queued squares
-  that came from hits on *that* ship are retired. Hits on a different,
-  still-floating ship stay in the queue, so hitting two adjacent ships and
-  sinking one does not reset the opponent to hunt mode.
-
-The opponent never reads ship positions. It works from its own shot history
-(`board.shots`) plus the sink announcements a human opponent would also hear,
-cached per board.
-
-## Not yet implemented
-
-- Probability-density targeting or parity-based hunting (hunt mode is still
-  uniformly random)
-- Scoring, statistics, or match history
-- Persistence of game state between page loads
-- Sound, animation, or mobile-specific layout
-
-## Code structure
-
-| File | Purpose |
+| File | Responsibility |
 | --- | --- |
-| `index.html` | Markup and element hooks |
-| `styles.css` | Board, fleet, panel, and log styling |
-| `game.js` | Game state and rules — plain data structures, no DOM access |
-| `ui.js` | Rendering and event wiring; delegates all rules to `game.js` |
-| `tests/placement-tests.html` | Placement assertions over `game.js` |
-| `tests/simulate-games.html` | 100-game simulation of the full turn loop |
-| `tests/ai-benchmark.html` | 1,000-game comparison of random vs hunt-and-target |
+| `index.html` | Document structure and element hooks: the how-to panel, controls, message log, status banner, both boards, and the fleet status panels. Asset URLs carry a `?v=` query string for cache-busting on GitHub Pages. |
+| `styles.css` | All presentation: grid rendering, ship colors, hit/miss pegs, panels, the status banner's per-state colors, and the responsive layout. |
+| `game.js` | All rules and state as plain data — board creation, placement validation, random fleets, firing, sink and win detection, and opponent targeting. No DOM access, so every rule is testable in isolation. |
+| `ui.js` | Rendering and event wiring: builds the grids, tracks the placement cursor, gates input by phase, runs the turn loop with the opponent's ~600 ms delay, writes the log and banner, and resets state on New Game. It delegates every rule to `game.js`. |
+| `tests/placement-tests.html` | Placement assertions, including 10,000 random fleets. |
+| `tests/simulate-games.html` | 100 complete games through the full turn loop. |
+| `tests/ai-benchmark.html` | 1,000 games per strategy: random vs hunt-and-target. |
+| `tests/ai-audit.html` | Opponent-memory lifetime, off-cadence calls, and shot legality. |
+| `.github/workflows/pages.yml` | Publishes the repo root to GitHub Pages on push to `main`. |
 
-Board state is a plain object (`{ size, grid, shots, ships }`) where
+Board state is a plain object — `{ size, grid, shots, ships }`, where
 `grid[row][col]` holds a ship id or `null` and `shots[row][col]` holds `'hit'`,
-`'miss'`, or `null`, so it can be exercised without a DOM. Rules live in
-reusable functions (`validatePlacement`, `placeShip`, `placeFleetRandomly`,
-`fireAt`, `isShipSunk`, `isFleetDefeated`, `chooseOpponentTarget`) rather than
-inline in event handlers.
+`'miss'`, or `null` — so the rules can be driven without a browser. The player
+and opponent boards are the same shape, and `ui.js` holds no rule logic of its
+own.
 
-## Checks
+## How the opponent works
 
-Open any of these files in a browser:
+`chooseOpponentTarget(board, rng)` in `game.js` is the opponent's entire
+strategy: it takes the board being fired upon and returns a `{ row, col }`, or
+`null` when nothing is left. `rng` is optional and defaults to `Math.random`,
+matching `placeFleetRandomly`, so seeded runs are reproducible.
 
-- `tests/placement-tests.html` — overlap and out-of-bounds rejection, board
-  clearing, and 10,000 random fleets (in-bounds, non-overlapping, exactly 17
-  cells).
-- `tests/simulate-games.html` — simulates 100 complete games and asserts each
-  ends with exactly one winner within 200 total turns. Latest run: 100/100 had
-  exactly one winner, max 168 turns.
-- `tests/ai-benchmark.html` — 1,000 games per strategy against randomly placed
-  fleets, asserting no square is fired on twice and every game terminates.
-  Latest run: random targeting averages **95.6** shots to clear a fleet,
-  hunt-and-target averages **60.4** (36.8% fewer). It also checks the
-  adjacent-ship case: sinking one of two touching ships keeps the opponent
-  hunting the other.
+In **hunt mode** it fires at a uniformly random un-fired square. A hit switches
+it to **target mode**: the hit's on-board, un-fired orthogonal neighbours are
+queued, and while the queue is non-empty it fires from the queue instead of at
+random. Once two hits line up, squares that extend that axis are preferred over
+perpendicular neighbours, because ships are straight. When a ship is announced
+sunk, only the queued squares descended from hits on *that* ship are retired —
+hits belonging to a different, still-floating ship stay queued, so sinking one
+of two touching ships does not reset the opponent to hunt mode.
+
+The opponent never reads ship positions. It rebuilds its knowledge on each call
+from its own shot history (`board.shots`) plus the sink announcements a human
+opponent would also hear, and caches that per board in a `WeakMap`; clearing a
+board discards the cache, so nothing carries between games.
+
+## Running the tests
+
+There is no test runner and nothing to install — open each file in a browser
+and read the `<pre>` block, which ends in an explicit pass/fail line.
+
+| File | What it asserts | Latest run |
+| --- | --- | --- |
+| `tests/placement-tests.html` | Overlap and out-of-bounds rejection, board clearing, and 10,000 random fleets being in-bounds, non-overlapping, and exactly 17 cells. | ALL TESTS PASSED |
+| `tests/simulate-games.html` | 100 complete games each end with exactly one winner inside 200 turns. | 100/100, max 166 turns, average 108.4 |
+| `tests/ai-benchmark.html` | 1,000 games per strategy, no square fired on twice, every game terminates, and the adjacent-ship case keeps hunting the second ship. | random 95.6 shots average, hunt-and-target 60.4 (36.8% fewer) |
+| `tests/ai-audit.html` | Opponent memory does not survive a New Game, repeated or skipped `chooseOpponentTarget` calls neither drop nor repeat targets, and no shot is ever off-board or repeated — including from each corner. | ALL AUDIT CHECKS PASSED |
+
+## Not implemented
+
+These are deliberate scope decisions, not oversights:
+
+- **The SALVO variant** from the official rules — firing one shot per surviving
+  ship each turn, and the associated "call your shots up front" bookkeeping —
+  was intentionally not built. The game implements the standard one-shot-per-turn
+  rules only.
+- **Two-player play** of any kind: no hot-seat, no networking, no backend. The
+  opponent is always the computer.
+- **Smarter hunting.** Hunt mode is uniformly random; probability-density
+  targeting and parity hunting (never wasting a shot on a square that cannot
+  hold the smallest surviving ship) are not implemented.
+- **Difficulty levels** or any way to configure the opponent from the UI.
+- **Scoring, statistics, or match history**, and no persistence between page
+  loads — reloading starts over.
+- **Sound, animation, and a mobile-tuned layout.** The layout is responsive
+  enough to use on a narrow screen but is designed for desktop.
+- **Automated regression testing infrastructure.** The `tests/` files are
+  hand-run browser harnesses, deliberately dependency-free, not a CI suite.

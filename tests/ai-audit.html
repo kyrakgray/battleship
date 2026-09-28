@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Battleship — opponent memory audit</title>
+</head>
+<body>
+<h1>Opponent memory audit</h1>
+<p>Checks the lifetime of the opponent's per-board memory across a New Game,
+that <code>chooseOpponentTarget</code> is safe when called more or fewer times
+than once per turn, and that it never returns an off-board or repeated square —
+including from the corners A1 and J10.</p>
+<pre id="out">running…</pre>
+<script src="../game.js"></script>
+<script>
+(function () {
+  var B = window.Battleship;
+  var results = [];
+
+  function check(name, ok, detail) {
+    results.push((ok ? 'PASS' : 'FAIL') + ' — ' + name + (detail ? ': ' + detail : ''));
+    return ok;
+  }
+
+  function seeded(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
+
+  function playToEnd(board, rng, max) {
+    var shots = 0;
+    var seen = {};
+    var limit = max || 100;
+    while (shots < limit) {
+      var t = B.chooseOpponentTarget(board, rng);
+      if (!t) return { shots: shots, error: 'ran out of targets' };
+      var key = t.row + ',' + t.col;
+      if (seen[key]) return { shots: shots, error: 'repeat at ' + B.coordLabel(t.row, t.col) };
+      if (!B.inBounds(t.row, t.col)) return { shots: shots, error: 'off board' };
+      seen[key] = true;
+      var r = B.fireAt(board, t.row, t.col);
+      shots++;
+      if (!r.legal) return { shots: shots, error: 'illegal shot' };
+      if (r.fleetDefeated) return { shots: shots };
+    }
+    return { shots: shots, error: 'did not terminate' };
+  }
+
+  /* 1. Memory lifetime across New Game.
+   *
+   * ui.js reuses the same board objects between games and only calls
+   * clearBoard, so a reused board must behave exactly like a brand new one.
+   * Same fleet + same seed on a recycled board vs. a fresh board must produce
+   * an identical shot sequence; any carried-over queue or hit history would
+   * diverge on the first shots. */
+  function shotSequence(board, seed, count) {
+    var rng = seeded(seed);
+    var seq = [];
+    for (var i = 0; i < count; i++) {
+      var t = B.chooseOpponentTarget(board, rng);
+      if (!t) break;
+      seq.push(B.coordLabel(t.row, t.col));
+      B.fireAt(board, t.row, t.col);
+    }
+    return seq.join(' ');
+  }
+
+  function fleetLayout(board) {
+    return Object.keys(board.ships).sort().map(function (id) {
+      var s = board.ships[id];
+      return id + '@' + s.row + ',' + s.col + ',' + s.orientation;
+    }).join('|');
+  }
+
+  function memoryLifetimeCheck() {
+    var recycled = B.createBoard();
+    B.placeFleetRandomly(recycled, seeded(11));
+    playToEnd(recycled, seeded(23));
+
+    // New Game: same object, cleared and re-stocked.
+    B.clearBoard(recycled);
+    B.placeFleetRandomly(recycled, seeded(41));
+
+    var fresh = B.createBoard();
+    B.placeFleetRandomly(fresh, seeded(41));
+
+    check('recycled and fresh boards hold the same fleet',
+      fleetLayout(recycled) === fleetLayout(fresh), fleetLayout(fresh));
+
+    var a = shotSequence(recycled, 99, 30);
+    var b = shotSequence(fresh, 99, 30);
+    check('opponent memory (fired/openHits/queue/sunkSeen) does not survive New Game',
+      a === b, a === b ? a.split(' ').slice(0, 6).join(' ') + ' …' : 'recycled ' + a + ' vs fresh ' + b);
+
+    // A mid-game reset while the queue is hot is the harshest case: hit a ship
+    // so neighbors are queued, then clear and confirm the next shot is a
+    // hunt-mode shot identical to a fresh board's.
+    var hot = B.createBoard();
+    B.placeShip(hot, 'cruiser', 4, 4, B.ORIENTATIONS.HORIZONTAL);
+    B.fireAt(hot, 4, 4);
+    B.chooseOpponentTarget(hot, seeded(5));
+    B.clearBoard(hot);
+    B.placeShip(hot, 'cruiser', 0, 0, B.ORIENTATIONS.HORIZONTAL);
+
+    var cold = B.createBoard();
+    B.placeShip(cold, 'cruiser', 0, 0, B.ORIENTATIONS.HORIZONTAL);
+
+    var hotShot = B.chooseOpponentTarget(hot, seeded(5));
+    var coldShot = B.chooseOpponentTarget(cold, seeded(5));
+    check('a queue left hot by the previous game is discarded on clearBoard',
+      hotShot.row === coldShot.row && hotShot.col === coldShot.col,
+      B.coordLabel(hotShot.row, hotShot.col) + ' vs ' + B.coordLabel(coldShot.row, coldShot.col));
+  }
+
+  /* 2. Off-cadence calls.
+   *
+   * recordShots diffs board.shots rather than being told what was fired, so
+   * calling the chooser twice without firing must not consume or forget a
+   * target, and skipping calls must not lose shots that happened meanwhile. */
+  function cadenceCheck() {
+    var board = B.createBoard();
+    B.placeShip(board, 'battleship', 3, 3, B.ORIENTATIONS.HORIZONTAL);
+    B.fireAt(board, 3, 3);
+
+    var repeated = [];
+    for (var i = 0; i < 5; i++) {
+      var t = B.chooseOpponentTarget(board, seeded(3));
+      repeated.push(B.coordLabel(t.row, t.col));
+    }
+    var stable = repeated.every(function (label) { return label === repeated[0]; });
+    check('calling the chooser repeatedly without firing is idempotent',
+      stable, repeated.join(' '));
+
+    // Every extra call must still be a target adjacent to the open hit, i.e.
+    // the queue was not silently drained by the unfired calls.
+    var next = B.chooseOpponentTarget(board, seeded(3));
+    var adjacent = Math.abs(next.row - 3) + Math.abs(next.col - 3) === 1;
+    check('the queue around an unresolved hit survives unfired calls',
+      adjacent, B.coordLabel(next.row, next.col));
+
+    // Fewer calls than shots: fire several squares with no chooser call in
+    // between, then confirm those shots are folded in (no repeat, and the
+    // hit made meanwhile is pursued).
+    var skipped = B.createBoard();
+    B.placeShip(skipped, 'cruiser', 7, 2, B.ORIENTATIONS.VERTICAL);
+    B.fireAt(skipped, 0, 0);
+    B.fireAt(skipped, 0, 1);
+    B.fireAt(skipped, 7, 2);
+    var pursue = B.chooseOpponentTarget(skipped, seeded(9));
+    check('shots taken without a chooser call are folded in and pursued',
+      Math.abs(pursue.row - 7) + Math.abs(pursue.col - 2) === 1 &&
+        skipped.shots[pursue.row][pursue.col] === null,
+      B.coordLabel(pursue.row, pursue.col));
+
+    // Interleaving extra calls through a whole game must not break legality
+    // or termination.
+    var noisy = B.createBoard();
+    B.placeFleetRandomly(noisy, seeded(77));
+    var rng = seeded(78);
+    var seen = {};
+    var shots = 0;
+    var problem = null;
+    while (shots < 100) {
+      B.chooseOpponentTarget(noisy, rng);
+      B.chooseOpponentTarget(noisy, rng);
+      var target = B.chooseOpponentTarget(noisy, rng);
+      if (!target) { problem = 'ran out of targets'; break; }
+      var key = target.row + ',' + target.col;
+      if (seen[key]) { problem = 'repeat at ' + B.coordLabel(target.row, target.col); break; }
+      seen[key] = true;
+      var result = B.fireAt(noisy, target.row, target.col);
+      shots++;
+      if (!result.legal) { problem = 'illegal shot'; break; }
+      if (result.fleetDefeated) break;
+    }
+    check('three chooser calls per fired shot still finishes a legal game',
+      !problem && B.isFleetDefeated(noisy), problem || shots + ' shots');
+  }
+
+  /* 3. Legality, including corner hits. */
+  function legalityCheck() {
+    var games = 1000;
+    var failures = [];
+    for (var i = 0; i < games; i++) {
+      var board = B.createBoard();
+      B.placeFleetRandomly(board, seeded(i + 500));
+      var game = playToEnd(board, seeded(i + 9000));
+      if (game.error) failures.push('game ' + (i + 1) + ': ' + game.error);
+    }
+    check(games + ' games: no off-board shot, no repeat, every game terminates',
+      failures.length === 0, failures.slice(0, 3).join(' / '));
+
+    // Corners: seed a hit in each corner so target mode has to clip its
+    // neighbor queue against two edges, then drain the whole board.
+    [[0, 0], [9, 9], [0, 9], [9, 0]].forEach(function (corner) {
+      var board = B.createBoard();
+      B.placeShip(board, 'destroyer', corner[0], corner[1] === 9 ? 8 : 0,
+        B.ORIENTATIONS.HORIZONTAL);
+      B.fireAt(board, corner[0], corner[1]);
+
+      var rng = seeded(corner[0] * 10 + corner[1] + 1);
+      var problem = null;
+      for (var n = 0; n < 99; n++) {
+        var t = B.chooseOpponentTarget(board, rng);
+        if (!t) { problem = 'ran out of targets after ' + n; break; }
+        if (!B.inBounds(t.row, t.col)) { problem = 'off board ' + t.row + ',' + t.col; break; }
+        if (board.shots[t.row][t.col] !== null) {
+          problem = 'repeat at ' + B.coordLabel(t.row, t.col);
+          break;
+        }
+        B.fireAt(board, t.row, t.col);
+      }
+      var remaining = B.availableTargets(board).length;
+      check('corner ' + B.coordLabel(corner[0], corner[1]) +
+        ': drains the board with no off-board or repeat shot',
+        !problem && remaining === 0, problem || remaining + ' squares left');
+    });
+
+    // A full board must yield null rather than an illegal square.
+    var full = B.createBoard();
+    B.placeFleetRandomly(full, seeded(4));
+    for (var r = 0; r < 10; r++) {
+      for (var c = 0; c < 10; c++) B.fireAt(full, r, c);
+    }
+    check('returns null when every square has been fired on',
+      B.chooseOpponentTarget(full, seeded(4)) === null);
+  }
+
+  memoryLifetimeCheck();
+  cadenceCheck();
+  legalityCheck();
+
+  var failed = results.filter(function (line) { return line.indexOf('FAIL') === 0; });
+  results.push(failed.length ? failed.length + ' CHECK(S) FAILED' : 'ALL AUDIT CHECKS PASSED');
+  document.getElementById('out').textContent = results.join('\n');
+})();
+</script>
+</body>
+</html>
