@@ -172,7 +172,7 @@
         item.appendChild(swatch);
 
         var name = document.createElement('span');
-        name.textContent = type.name + (sunk ? ' — sunk' : '');
+        name.textContent = type.name + ' (' + type.length + ')' + (sunk ? ' — sunk' : '');
         item.appendChild(name);
 
         side.list.appendChild(item);
