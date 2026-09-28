@@ -44,7 +44,8 @@ Live: https://kyrakgray.github.io/battleship/
   window; clicks are ignored, not queued.
 - The game ends when either fleet is completely sunk: a win or loss result is
   shown and further input is ignored.
-- **Reveal Enemy Ship Locations** appears only after the game ends and toggles
+- **Reveal Enemy Ship Locations** appears only after a loss (a win already
+  exposes every enemy square) and toggles
   the enemy fleet into view: squares the player hit stay red, and the squares
   they never found show in their ship's color.
 - **New Game** returns to ship placement with fully cleared state — no

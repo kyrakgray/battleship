@@ -329,7 +329,7 @@
       : 'You lose. Your fleet is sunk.';
     addLog('system', text);
     setMessage(text, winner === 'player' ? 'info' : 'error');
-    els.btnReveal.classList.remove('hidden');
+    els.btnReveal.classList.toggle('hidden', winner === 'player');
     els.btnReveal.textContent = 'Reveal Enemy Ship Locations';
     render();
   }
