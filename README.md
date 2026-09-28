@@ -36,7 +36,8 @@ Live: https://kyrakgray.github.io/battleship/
 - A hit names the struck ship ("Hit. Cruiser."), and sinking one announces it
   by name ("You sank my Battleship!", and the equivalent when the opponent
   sinks one of yours).
-- A message log shows the last several turns for both sides.
+- A message log keeps every turn of the current game, scrollable so earlier
+  shots can be read back.
 - A fleet status panel lists all five ships for each side, with sunk ships
   struck through.
 - After the player's shot resolves the opponent fires ~600ms later, with a

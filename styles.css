@@ -170,7 +170,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   margin: 0;
   padding: 0;
   font-size: 13px;
-  max-height: 180px;
+  max-height: 220px;
   overflow-y: auto;
 }
 .log-entry { padding: 3px 0; border-bottom: 1px solid rgba(43, 92, 138, 0.35); }

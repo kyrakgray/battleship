@@ -6,7 +6,7 @@
 
   var PHASES = { PLACEMENT: 'placement', PLAYER_TURN: 'player-turn', OPPONENT_TURN: 'opponent-turn', OVER: 'over' };
   var OPPONENT_DELAY_MS = 600;
-  var LOG_LIMIT = 8;
+  var LOG_PIN_SLACK_PX = 24;
 
   var state = {
     phase: PHASES.PLACEMENT,
@@ -188,19 +188,35 @@
     });
   }
 
+  function appendLogEntry(entry) {
+    var item = document.createElement('li');
+    item.className = 'log-entry ' + entry.side;
+    item.textContent = entry.text;
+    els.log.appendChild(item);
+  }
+
+  function scrollLogToEnd() {
+    els.log.scrollTop = els.log.scrollHeight;
+  }
+
+  /** True while the player is reading the newest entries rather than scrollback. */
+  function logIsPinnedToEnd() {
+    return els.log.scrollHeight - els.log.scrollTop - els.log.clientHeight <=
+      LOG_PIN_SLACK_PX;
+  }
+
   function renderLog() {
     els.log.innerHTML = '';
-    state.log.slice(-LOG_LIMIT).forEach(function (entry) {
-      var item = document.createElement('li');
-      item.className = 'log-entry ' + entry.side;
-      item.textContent = entry.text;
-      els.log.appendChild(item);
-    });
+    state.log.forEach(appendLogEntry);
+    scrollLogToEnd();
   }
 
   function addLog(side, text) {
-    state.log.push({ side: side, text: text });
-    renderLog();
+    var pinned = logIsPinnedToEnd();
+    var entry = { side: side, text: text };
+    state.log.push(entry);
+    appendLogEntry(entry);
+    if (pinned) scrollLogToEnd();
   }
 
   function setMessage(text, kind) {
