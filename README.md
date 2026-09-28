@@ -36,8 +36,8 @@ Live: https://kyrakgray.github.io/battleship/
 - A hit names the struck ship ("Hit. Cruiser."), and sinking one announces it
   by name ("You sank my Battleship!", and the equivalent when the opponent
   sinks one of yours).
-- A message log keeps every turn of the current game, scrollable so earlier
-  shots can be read back.
+- A message log shows the last four moves and keeps every turn of the current
+  game, so earlier shots can be scrolled back to.
 - A fleet status panel lists all five ships for each side, with sunk ships
   struck through.
 - After the player's shot resolves the opponent fires ~600ms later, with a
@@ -56,7 +56,7 @@ Live: https://kyrakgray.github.io/battleship/
 
 - A **How to play** panel explains placement, rotation, and firing on first
   load. It closes once the game starts and can be reopened from the controls.
-- A status banner above the controls always names the current state — placing,
+- A status banner between the log and the boards always names the current state — placing,
   your turn, the opponent's turn, or game over — with the result of the last
   shot underneath and a colored edge per state.
 - The win/loss result is shown in the banner at large type when the game ends.

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Battleship</title>
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 <header>
@@ -19,21 +19,19 @@
       <li><strong>Place your fleet.</strong> Pick a ship, press <kbd>R</kbd> to switch
         between horizontal and vertical, then click a square on <em>Your Fleet</em> to
         drop it. Ships can't overlap or hang off the edge. <em>Place Randomly</em>
-        does it all for you.</li>
+        does it all for you, and <em>Reset Placement</em> clears the board so you
+        can start the layout over.</li>
       <li><strong>Start the game.</strong> The button unlocks once all five ships are
         down. The computer hides its own fleet in Enemy Waters and you shoot first.</li>
       <li><strong>Fire.</strong> Click a square on <em>Enemy Waters</em>. Red is a hit,
         white is a miss, and you're told which ship you struck or sank. The opponent
-        then takes its shot at your fleet.</li>
+        then takes its shot at your fleet. The <em>Message log</em> shows the last few
+        moves — scroll up inside it to read every shot of the game so far.</li>
       <li><strong>Win.</strong> Sink all five enemy ships before it sinks yours. The
-        banner at the top always says whose turn it is and what just happened.</li>
+        banner above the boards always says whose turn it is and what just
+        happened.</li>
     </ol>
     <button id="btn-how-to-close" type="button">Got it — let's play</button>
-  </section>
-
-  <section class="status" id="status-bar">
-    <p class="turn" id="phase-label">Ship placement phase</p>
-    <p class="message" id="message" role="status" aria-live="polite"></p>
   </section>
 
   <section class="controls">
@@ -62,6 +60,11 @@
     <ol class="log" id="log" aria-live="polite"></ol>
   </section>
 
+  <section class="status" id="status-bar">
+    <p class="turn" id="phase-label">Ship placement phase</p>
+    <p class="message" id="message" role="status" aria-live="polite"></p>
+  </section>
+
   <section class="boards">
     <div class="board-wrap">
       <h2>Your Fleet</h2>
@@ -82,7 +85,7 @@
   </section>
 </main>
 
-<script src="game.js?v=10"></script>
-<script src="ui.js?v=10"></script>
+<script src="game.js?v=11"></script>
+<script src="ui.js?v=11"></script>
 </body>
 </html>
