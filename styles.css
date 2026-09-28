@@ -125,4 +125,59 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .cell.preview-valid { background: var(--valid); }
 .cell.preview-invalid { background: var(--invalid); }
 
-.board.disabled .cell { cursor: default; opacity: 0.6; }
+.board.disabled .cell { cursor: default; }
+.board.disabled .cell:hover { background: var(--ocean); }
+
+.cell.hit { background: #c0392b; border-color: #7d2419; }
+.cell.miss { background: #eef3f7; border-color: #b9c6d2; }
+.board.disabled .cell.hit:hover { background: #c0392b; }
+.board.disabled .cell.miss:hover { background: #eef3f7; }
+
+.hidden { display: none; }
+
+.panels {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.panel {
+  background: #0d2238;
+  border: 1px solid var(--grid-line);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 320px;
+  flex: 1 1 320px;
+}
+.panel h3 { margin: 0 0 10px; font-size: 15px; letter-spacing: 1px; }
+.panel h4 { margin: 0 0 6px; font-size: 13px; opacity: 0.8; }
+
+.fleet-status { display: flex; gap: 24px; }
+.fleet-status ul { list-style: none; margin: 0; padding: 0; }
+
+.status-ship {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  padding: 2px 0;
+}
+.status-ship .swatch {
+  width: 12px; height: 12px; border-radius: 2px; flex: none;
+}
+.status-ship.sunk { opacity: 0.55; text-decoration: line-through; }
+
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.log-entry { padding: 3px 0; border-bottom: 1px solid rgba(43, 92, 138, 0.35); }
+.log-entry:last-child { border-bottom: none; }
+.log-entry.player { color: #9ad7ff; }
+.log-entry.opponent { color: #ffb3a7; }
+.log-entry.system { color: #f0c419; }

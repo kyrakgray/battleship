@@ -4,24 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Battleship</title>
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 <header>
   <h1>Battleship</h1>
-  <p class="tagline">Ship placement phase</p>
+  <p class="tagline" id="phase-label">Ship placement phase</p>
 </header>
 
 <main>
   <section class="controls">
-    <div class="fleet" id="fleet-list" role="listbox" aria-label="Fleet"></div>
-    <div class="buttons">
-      <button id="btn-random" type="button">Place Randomly</button>
-      <button id="btn-reset" type="button">Reset Placement</button>
-      <button id="btn-start" type="button" disabled>Start Game</button>
+    <div class="placement-controls" id="placement-controls">
+      <div class="fleet" id="fleet-list" role="listbox" aria-label="Fleet"></div>
+      <div class="buttons">
+        <button id="btn-random" type="button">Place Randomly</button>
+        <button id="btn-reset" type="button">Reset Placement</button>
+        <button id="btn-start" type="button" disabled>Start Game</button>
+      </div>
+      <p class="hint">Select a ship, press <kbd>R</kbd> to rotate, click a square to place it.</p>
+      <p class="orientation">Orientation: <strong id="orientation-label">Horizontal</strong></p>
     </div>
-    <p class="hint">Select a ship, press <kbd>R</kbd> to rotate, click a square to place it.</p>
-    <p class="orientation">Orientation: <strong id="orientation-label">Horizontal</strong></p>
+    <div class="battle-controls hidden" id="battle-controls">
+      <p class="hint">Click a square on Enemy Waters to fire.</p>
+      <div class="buttons">
+        <button id="btn-new-game" type="button">New Game</button>
+      </div>
+    </div>
     <p class="message" id="message" role="status" aria-live="polite"></p>
   </section>
 
@@ -35,9 +43,29 @@
       <div class="board disabled" id="enemy-board" aria-disabled="true"></div>
     </div>
   </section>
+
+  <section class="panels">
+    <div class="panel">
+      <h3>Fleet status</h3>
+      <div class="fleet-status">
+        <div>
+          <h4>Your Fleet</h4>
+          <ul id="status-player"></ul>
+        </div>
+        <div>
+          <h4>Enemy Fleet</h4>
+          <ul id="status-enemy"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Message log</h3>
+      <ol class="log" id="log" aria-live="polite"></ol>
+    </div>
+  </section>
 </main>
 
-<script src="game.js?v=2"></script>
-<script src="ui.js?v=2"></script>
+<script src="game.js?v=3"></script>
+<script src="ui.js?v=3"></script>
 </body>
 </html>

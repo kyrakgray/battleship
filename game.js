@@ -20,8 +20,7 @@
 
   var ORIENTATIONS = { HORIZONTAL: 'horizontal', VERTICAL: 'vertical' };
 
-  /** Creates an empty board state. `grid[row][col]` holds a ship id or null. */
-  function createBoard() {
+  function emptyGrid() {
     var grid = [];
     for (var row = 0; row < BOARD_SIZE; row++) {
       var line = [];
@@ -30,7 +29,16 @@
       }
       grid.push(line);
     }
-    return { size: BOARD_SIZE, grid: grid, ships: {} };
+    return grid;
+  }
+
+  /**
+   * Creates an empty board state.
+   * `grid[row][col]` holds a ship id or null; `shots[row][col]` holds
+   * 'hit', 'miss', or null.
+   */
+  function createBoard() {
+    return { size: BOARD_SIZE, grid: emptyGrid(), shots: emptyGrid(), ships: {} };
   }
 
   function inBounds(row, col) {
@@ -123,7 +131,8 @@
       col: col,
       orientation: orientation,
       length: getShipType(shipId).length,
-      cells: result.cells
+      cells: result.cells,
+      hits: 0
     };
     return { success: true, reason: null };
   }
@@ -142,6 +151,7 @@
     for (var row = 0; row < BOARD_SIZE; row++) {
       for (var col = 0; col < BOARD_SIZE; col++) {
         board.grid[row][col] = null;
+        board.shots[row][col] = null;
       }
     }
     board.ships = {};
@@ -206,6 +216,95 @@
     return placeShip(board, shipId, pick.row, pick.col, pick.orientation).success;
   }
 
+  var SHOT = { HIT: 'hit', MISS: 'miss' };
+
+  /** True when the square is on the board and has not been fired on yet. */
+  function canFireAt(board, row, col) {
+    return inBounds(row, col) && board.shots[row][col] === null;
+  }
+
+  function isShipSunk(board, shipId) {
+    var ship = board.ships[shipId];
+    return Boolean(ship) && ship.hits >= ship.length;
+  }
+
+  function sunkShipIds(board) {
+    return placedShipIds(board).filter(function (shipId) {
+      return isShipSunk(board, shipId);
+    });
+  }
+
+  /** True when the whole fleet is placed and every ship is sunk. */
+  function isFleetDefeated(board) {
+    if (!allShipsPlaced(board)) return false;
+    for (var i = 0; i < SHIP_TYPES.length; i++) {
+      if (!isShipSunk(board, SHIP_TYPES[i].id)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Fires at a square of `board`.
+   * Returns { legal, result, shipId, shipName, sunk, fleetDefeated }.
+   * An illegal shot (off board or already fired on) changes nothing and
+   * reports legal: false.
+   */
+  function fireAt(board, row, col) {
+    if (!canFireAt(board, row, col)) {
+      return {
+        legal: false, result: null, shipId: null, shipName: null,
+        sunk: false, fleetDefeated: false
+      };
+    }
+
+    var shipId = board.grid[row][col];
+    if (!shipId) {
+      board.shots[row][col] = SHOT.MISS;
+      return {
+        legal: true, result: SHOT.MISS, shipId: null, shipName: null,
+        sunk: false, fleetDefeated: false
+      };
+    }
+
+    board.shots[row][col] = SHOT.HIT;
+    board.ships[shipId].hits += 1;
+    return {
+      legal: true,
+      result: SHOT.HIT,
+      shipId: shipId,
+      shipName: getShipType(shipId).name,
+      sunk: isShipSunk(board, shipId),
+      fleetDefeated: isFleetDefeated(board)
+    };
+  }
+
+  /** Squares of `board` that have not been fired on yet. */
+  function availableTargets(board) {
+    var targets = [];
+    for (var row = 0; row < BOARD_SIZE; row++) {
+      for (var col = 0; col < BOARD_SIZE; col++) {
+        if (board.shots[row][col] === null) targets.push({ row: row, col: col });
+      }
+    }
+    return targets;
+  }
+
+  /**
+   * Opponent targeting. Takes the board being fired upon and returns a
+   * coordinate { row, col }, or null when no square is left.
+   *
+   * Placeholder strategy: uniformly random among un-fired squares. Replacing
+   * this single function with hunt-and-target is enough to change the
+   * opponent's behaviour; turn handling and rendering do not depend on how
+   * the coordinate is chosen.
+   */
+  function chooseOpponentTarget(board, rng) {
+    var random = rng || Math.random;
+    var targets = availableTargets(board);
+    if (!targets.length) return null;
+    return targets[Math.floor(random() * targets.length)];
+  }
+
   function toggleOrientation(orientation) {
     return orientation === ORIENTATIONS.HORIZONTAL
       ? ORIENTATIONS.VERTICAL
@@ -230,6 +329,14 @@
     allShipsPlaced: allShipsPlaced,
     placeShipRandomly: placeShipRandomly,
     placeFleetRandomly: placeFleetRandomly,
+    SHOT: SHOT,
+    canFireAt: canFireAt,
+    fireAt: fireAt,
+    isShipSunk: isShipSunk,
+    sunkShipIds: sunkShipIds,
+    isFleetDefeated: isFleetDefeated,
+    availableTargets: availableTargets,
+    chooseOpponentTarget: chooseOpponentTarget,
     toggleOrientation: toggleOrientation
   };
 

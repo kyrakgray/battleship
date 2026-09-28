@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Battleship — 100-game simulation</title>
+</head>
+<body>
+<h1>100-game simulation</h1>
+<p>Both sides place randomly and fire uniformly at random. Asserts every game
+ends with exactly one winner within 200 total turns.</p>
+<pre id="out">running…</pre>
+<script src="../game.js"></script>
+<script>
+(function () {
+  var B = window.Battleship;
+  var GAMES = 100;
+  var TURN_LIMIT = 200;
+
+  function playGame() {
+    var player = B.createBoard();
+    var opponent = B.createBoard();
+    B.placeFleetRandomly(player);
+    B.placeFleetRandomly(opponent);
+
+    var turns = 0;
+    var shooterIsPlayer = true;
+
+    while (turns < TURN_LIMIT) {
+      var target = shooterIsPlayer ? opponent : player;
+      var coord = B.chooseOpponentTarget(target);
+      if (!coord) break;
+
+      var result = B.fireAt(target, coord.row, coord.col);
+      turns++;
+      if (!result.legal) throw new Error('illegal shot at ' + B.coordLabel(coord.row, coord.col));
+      if (result.fleetDefeated) {
+        return { winner: shooterIsPlayer ? 'player' : 'opponent', turns: turns };
+      }
+      shooterIsPlayer = !shooterIsPlayer;
+    }
+    return { winner: null, turns: turns };
+  }
+
+  var failures = [];
+  var maxTurns = 0;
+  var totalTurns = 0;
+  var wins = { player: 0, opponent: 0 };
+
+  for (var i = 0; i < GAMES; i++) {
+    var game = playGame();
+    if (game.winner !== 'player' && game.winner !== 'opponent') {
+      failures.push('game ' + (i + 1) + ': no winner after ' + game.turns + ' turns');
+      continue;
+    }
+    if (game.turns > TURN_LIMIT) {
+      failures.push('game ' + (i + 1) + ': ' + game.turns + ' turns exceeds limit');
+    }
+    wins[game.winner]++;
+    totalTurns += game.turns;
+    maxTurns = Math.max(maxTurns, game.turns);
+  }
+
+  var completed = wins.player + wins.opponent;
+  var lines = [
+    'games simulated: ' + GAMES,
+    'games with exactly one winner: ' + completed,
+    'wins — player: ' + wins.player + ', opponent: ' + wins.opponent,
+    'turns — max: ' + maxTurns + ', average: ' + (totalTurns / Math.max(completed, 1)).toFixed(1),
+    'turn limit: ' + TURN_LIMIT
+  ];
+  lines.push(
+    failures.length === 0 && completed === GAMES
+      ? 'ALL 100 GAMES PASSED'
+      : 'FAILURES:\n' + failures.join('\n')
+  );
+  document.getElementById('out').textContent = lines.join('\n');
+})();
+</script>
+</body>
+</html>
