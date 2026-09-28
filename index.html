@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battleship</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>Battleship</h1>
+  <p class="tagline">Ship placement phase</p>
+</header>
+
+<main>
+  <section class="controls">
+    <div class="fleet" id="fleet-list" role="listbox" aria-label="Fleet"></div>
+    <div class="buttons">
+      <button id="btn-random" type="button">Place Randomly</button>
+      <button id="btn-reset" type="button">Reset Placement</button>
+      <button id="btn-start" type="button" disabled>Start Game</button>
+    </div>
+    <p class="hint">Select a ship, press <kbd>R</kbd> to rotate, click a square to place it.</p>
+    <p class="orientation">Orientation: <strong id="orientation-label">Horizontal</strong></p>
+    <p class="message" id="message" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="boards">
+    <div class="board-wrap">
+      <h2>Your Fleet</h2>
+      <div class="board" id="player-board"></div>
+    </div>
+    <div class="board-wrap">
+      <h2>Enemy Waters</h2>
+      <div class="board disabled" id="enemy-board" aria-disabled="true"></div>
+    </div>
+  </section>
+</main>
+
+<script src="game.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

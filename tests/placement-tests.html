@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Battleship placement tests</title>
+</head>
+<body>
+<h1>Placement tests</h1>
+<pre id="out"></pre>
+<script src="../game.js"></script>
+<script>
+(function () {
+  var B = window.Battleship;
+  var lines = [];
+  var failures = 0;
+
+  function check(name, condition, detail) {
+    if (!condition) failures++;
+    lines.push((condition ? 'PASS' : 'FAIL') + ' — ' + name + (detail ? ' :: ' + detail : ''));
+  }
+
+  var board = B.createBoard();
+  check('carrier placed at A1 horizontal',
+    B.placeShip(board, 'carrier', 0, 0, 'horizontal').success);
+
+  var overlap = B.placeShip(board, 'battleship', 0, 2, 'horizontal');
+  check('overlapping placement rejected', !overlap.success, overlap.reason);
+
+  var edge = B.placeShip(board, 'cruiser', 0, 8, 'horizontal');
+  check('placement past right edge rejected', !edge.success, edge.reason);
+
+  var edgeV = B.placeShip(board, 'cruiser', 8, 0, 'vertical');
+  check('placement past bottom edge rejected', !edgeV.success, edgeV.reason);
+
+  check('cruiser fits vertically at G1',
+    B.placeShip(board, 'cruiser', 6, 0, 'vertical').success);
+  check('duplicate ship rejected',
+    !B.placeShip(board, 'cruiser', 3, 3, 'horizontal').success);
+
+  B.clearBoard(board);
+  check('clearBoard removes all ships', B.placedShipIds(board).length === 0);
+
+  var randomFailures = 0;
+  for (var i = 0; i < 10000; i++) {
+    var b = B.createBoard();
+    if (!B.placeFleetRandomly(b)) { randomFailures++; continue; }
+    var occupied = 0;
+    for (var r = 0; r < 10; r++) {
+      for (var c = 0; c < 10; c++) if (b.grid[r][c]) occupied++;
+    }
+    if (occupied !== 17 || !B.allShipsPlaced(b)) randomFailures++;
+  }
+  check('10000 random fleets are in-bounds and non-overlapping',
+    randomFailures === 0, randomFailures + ' failures');
+
+  lines.push(failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED');
+  document.getElementById('out').textContent = lines.join('\n');
+})();
+</script>
+</body>
+</html>
