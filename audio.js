@@ -15,7 +15,7 @@
 
   var STORE_KEY = 'california-five-sound';
   var VOICE_DIR = 'voice/';
-  var VOICE_VERSION = '?v=31';
+  var VOICE_VERSION = '?v=32';
 
   /** Every line the ranger speaks, keyed by the moment it belongs to. */
   var LINES = {
@@ -83,10 +83,34 @@
   function audioContext() {
     var Ctor = window.AudioContext || window.webkitAudioContext;
     if (!Ctor) return null;
+    // A phone left idle interrupts its audio, and an interrupted context on
+    // Safari never comes back: start a fresh one and drop what it decoded.
+    if (ctx && (ctx.state === 'interrupted' || ctx.state === 'closed')) {
+      try { ctx.close(); } catch (err) { /* already gone */ }
+      ctx = null;
+      readOuts = {};
+      clips = {};
+      pencil = null;
+    }
     if (!ctx) ctx = new Ctor();
     if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
     return ctx;
   }
+
+  /** Wakes the sound back up when the player returns to the game. */
+  function wake() {
+    if (!prefs.effects && !prefs.voice) return null;
+    var context = audioContext();
+    return context && context.state;
+  }
+  ['pointerdown', 'touchstart', 'keydown'].forEach(function (name) {
+    window.addEventListener(name, wake, true);
+  });
+  window.addEventListener('focus', wake);
+  window.addEventListener('pageshow', wake);
+  window.document.addEventListener('visibilitychange', function () {
+    if (!window.document.hidden) wake();
+  });
 
   /** One shaped tone: the building block of every effect below. */
   function tone(opts) {
@@ -172,7 +196,7 @@
     /** A pencil laying a park down on the paper map: a recorded stroke. */
     draw: function () {
       if (!pencil) {
-        pencil = new window.Audio('sfx/pencil.mp3?v=31');
+        pencil = new window.Audio('sfx/pencil.mp3?v=32');
         pencil.preload = 'auto';
       }
       pencil.currentTime = 0;
@@ -225,6 +249,16 @@
   var readOutRun = 0;
   var voiceNow = null;
   var queued = null;
+  var afterVoice = null;
+
+  /** Hands the floor to whatever line was waiting on this one. */
+  function finishVoice(handle) {
+    if (handle && voiceNow !== handle) return;
+    voiceNow = null;
+    var next = afterVoice;
+    afterVoice = null;
+    if (next) next();
+  }
 
   /** Decodes one recording into samples the browser can splice. */
   function decodeClip(key) {
@@ -291,6 +325,7 @@
     var utterance = new window.SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 0.7;
+    utterance.onend = function () { finishVoice(null); };
     synth.cancel();
     synth.speak(utterance);
   }
@@ -302,7 +337,7 @@
     var at = 0;
     function next() {
       if (at >= known.length) {
-        voiceNow = null;
+        finishVoice(voiceNow);
         return;
       }
       var clip = clipFor(known[at++]);
@@ -339,11 +374,16 @@
       source.connect(context.destination);
       var handle = {
         currentTime: 0,
-        pause: function () { try { source.stop(); } catch (err) { /* done */ } }
+        paused: false,
+        ended: false,
+        pause: function () { try { source.stop(); } catch (err) { /* done */ } },
+        addEventListener: function () { /* samples report through onended */ },
+        removeEventListener: function () { /* nothing was listening */ }
       };
       voiceNow = handle;
       source.onended = function () {
-        if (voiceNow === handle) voiceNow = null;
+        handle.ended = true;
+        finishVoice(handle);
       };
       source.start();
     })['catch'](function () {
@@ -385,8 +425,12 @@
       if (fn) fn(detail);
     },
 
+    /** Revives audio a phone suspended while the player was away. */
+    wake: wake,
+
     stopVoice: function () {
       queued = null;
+      afterVoice = null;
       readOutRun++;
       if (voiceNow) {
         voiceNow.pause();
@@ -404,19 +448,17 @@
         return;
       }
       queued = key;
-      var playing = voiceNow;
-      playing.addEventListener('ended', function once() {
-        playing.removeEventListener('ended', once);
+      afterVoice = function () {
         if (queued !== key) return;
         queued = null;
         api.say(key);
-      });
+      };
     },
 
     say: function (key) {
       if (!prefs.voice || !LINES[key]) return;
       api.stopVoice();
-      playClips([key]);
+      playRun([key]);
     },
 
     /**

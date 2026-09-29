@@ -116,6 +116,12 @@
       /^While you were still squinting at a map\. Go on and review the race/
         .test(voiceLines['result-loss-end'] || ''),
       voiceLines['result-win-end'] + ' / ' + voiceLines['result-loss-end']);
+    var wokeAt = audio.wake();
+    d.dispatchEvent(new w.Event('visibilitychange'));
+    w.dispatchEvent(new w.Event('focus'));
+    check('the sound is still alive when the player comes back to the game',
+      typeof audio.wake === 'function' && wokeAt !== 'closed' &&
+      audio.wake() !== 'closed', wokeAt + ' / ' + audio.wake());
     function served(path) {
       var request = new w.XMLHttpRequest();
       request.open('HEAD', path, false);
