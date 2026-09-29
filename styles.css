@@ -193,6 +193,22 @@ kbd {
 .board.disabled .cell.marker:hover { background: #d8622c; }
 .board.disabled .cell.dead-end:hover { background: #d8d2c3; }
 
+/* Each park signs its own trail markers; a dead end is a switchback that
+   peters out on a forest road. */
+.sprite { display: none; }
+
+.cell-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 2px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.cell.marker .cell-icon { fill: #40160a; color: #40160a; }
+.cell.dead-end .cell-icon { fill: #8a8372; color: #8a8372; }
+.cell.revealed .cell-icon { fill: rgba(0, 0, 0, 0.6); color: rgba(0, 0, 0, 0.6); }
+
 .cell.revealed { border-color: rgba(0, 0, 0, 0.45); opacity: 0.85; }
 
 .hidden { display: none; }
@@ -284,9 +300,34 @@ kbd {
   color: var(--trail);
 }
 .intro-parks { list-style: none; margin: 0 0 20px; padding: 0; }
+.intro-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.intro-badge {
+  flex: none;
+  width: 76px;
+  height: 76px;
+}
+
+.park-icon {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+.park-icon.death-valley { color: #f0c419; }
+.park-icon.joshua-tree { color: #e9762f; }
+.park-icon.yosemite { color: #2fa8c9; }
+.park-icon.kings-canyon { color: #8f6bd6; }
+.park-icon.sequoia { color: #d76ba6; }
+
 .intro-parks li {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  grid-template-columns: 22px 1fr auto auto;
   gap: 12px;
   padding: 6px 0;
   border-bottom: 1px dashed rgba(237, 242, 233, 0.18);

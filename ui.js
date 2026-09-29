@@ -91,6 +91,21 @@
     }
   }
 
+  /**
+   * Markers are signed by the park they belong to; a dead end gets the
+   * forest-road switchback. Icons come from the sprite in index.html.
+   */
+  function paintIcon(cell, day, parkId, revealed) {
+    var symbol = day === B.DAY.DEAD_END ? 'icon-dead-end'
+      : (day === B.DAY.TRAIL_MARKER || revealed) && parkId ? 'icon-' + parkId
+      : null;
+    if (cell.dataset.icon === (symbol || '')) return;
+    cell.dataset.icon = symbol || '';
+    cell.innerHTML = symbol
+      ? '<svg class="cell-icon" aria-hidden="true"><use href="#' + symbol + '"></use></svg>'
+      : '';
+  }
+
   function acreage(park) {
     return state.acresFormat.format(park.acres) + ' acres';
   }
@@ -144,6 +159,7 @@
         cell.className = 'cell' + (parkId ? ' park' : '') +
           (day ? ' ' + day : '');
         cell.style.background = parkId && !day ? B.getPark(parkId).color : '';
+        paintIcon(cell, day, parkId);
       }
     }
     renderPreview();
@@ -163,6 +179,7 @@
         var reveal = Boolean(parkId) && day !== B.DAY.TRAIL_MARKER;
         cell.className = 'cell' + (day ? ' ' + day : '') + (reveal ? ' revealed' : '');
         cell.style.background = reveal ? B.getPark(parkId).color : '';
+        paintIcon(cell, day, state.rivalBoard.grid[row][col], reveal);
       }
     }
     els.rivalBoard.classList.toggle('disabled', state.phase !== PHASES.PLAYER_TURN);

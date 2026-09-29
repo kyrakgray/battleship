@@ -47,6 +47,18 @@
         check('intro lists ' + acres, $('intro').textContent.indexOf(acres) !== -1);
       });
 
+    check('intro shows the park badge',
+      $('intro').querySelector('.intro-badge use').getAttribute('href') === '#icon-badge');
+    check('intro copy credits the park passport',
+      /stamp in your park passport/.test($('intro').textContent) &&
+      /before your rival and the Classic is yours/.test($('intro').textContent));
+    ['death-valley', 'joshua-tree', 'yosemite', 'kings-canyon', 'sequoia'].forEach(function (id) {
+      check('intro shows the ' + id + ' icon',
+        !!$('intro').querySelector('.park-icon use[href="#icon-' + id + '"]'));
+      check('sprite defines the ' + id + ' icon', !!d.getElementById('icon-' + id));
+    });
+    check('sprite defines the dead-end icon', !!d.getElementById('icon-dead-end'));
+
     $('btn-intro-close').click();
     check('intro closes on "Enter the Classic"', $('intro').classList.contains('hidden'));
 
@@ -75,6 +87,8 @@
     var order = [];
     for (var i = 0; i < cells.length; i++) order.push(cells[i]);
     var next = 0;
+    var sawMarkerIcon = false;
+    var sawDeadEndIcon = false;
 
     function clickNext() {
       // Spend a day, then let the rival's turn resolve before the next click.
@@ -93,6 +107,17 @@
         var repeatBefore = $('log').children.length;
         order[next].click();
         check('re-scouting a square does nothing', $('log').children.length === repeatBefore);
+      }
+      if (order[next].classList.contains('dead-end') && !sawDeadEndIcon) {
+        sawDeadEndIcon = true;
+        check('a dead end draws the forest-road barricade',
+          order[next].dataset.icon === 'icon-dead-end', order[next].dataset.icon);
+      }
+      if (order[next].classList.contains('marker') && !sawMarkerIcon) {
+        sawMarkerIcon = true;
+        check('a trail marker draws its park icon',
+          /^icon-/.test(order[next].dataset.icon || '') &&
+          order[next].dataset.icon !== 'icon-dead-end', order[next].dataset.icon);
       }
       w.setTimeout(step, 80);
     }
@@ -119,6 +144,8 @@
         ($(stampedSide).textContent.match(/STAMPED/g) || []).length === 5);
       check('reveal button only after a loss',
         $('btn-reveal').classList.contains('hidden') === /California Five/.test(msg));
+      check('both square icons were drawn during the season',
+        sawMarkerIcon && sawDeadEndIcon, 'marker: ' + sawMarkerIcon + ', dead end: ' + sawDeadEndIcon);
       check('field notes kept the whole season', $('log').children.length > 10,
         $('log').children.length + ' entries');
       check('season clock counted the days scouted',

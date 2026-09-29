@@ -47,12 +47,16 @@ cannot overlap, and cannot run off the map. **Draw a Random Route** fills the
 map for you and **Clear Route** wipes it. **Seal & Trade Routes** unlocks once
 all five parks are down.
 
-The intro window tells the story of the Classic and lists the year's five
-parks; it opens on load and is reachable again from **The story**.
+The intro window tells the story of the Classic behind a park badge and lists
+the year's five parks, each beside its own icon; it opens on load and is
+reachable again from **The story**.
 
 You take the first scouting day by clicking a square on **The Route Drawn For
-You**. A pale square is a dead end — a day burned on a forest road. An orange
-square is a trail marker, and the message names the park you are on. Finding
+You**. A pale square carrying a road barricade is a dead end — a day burned on
+a forest road. An orange square is a trail marker drawn with the icon of the
+park you are standing in: Half Dome for Yosemite, a crown for Kings Canyon, a
+Joshua tree, a sequoia, and a skull and crossbones for Death Valley. The
+message names the park you are on. Finding
 the last square of a park stamps it in your passport, shown in the passport
 panel under each map. The season clock under the banner counts the trail days
 you have spent of the hundred, the days left before the pass closes, and how
@@ -63,7 +67,7 @@ it is and what just happened.
 
 | File | Responsibility |
 | --- | --- |
-| `index.html` | Document structure and element hooks: the how-to panel, controls, field notes, status banner, both maps, and the passport panels. Asset URLs carry a `?v=` query string for cache-busting on GitHub Pages. |
+| `index.html` | Document structure and element hooks: the how-to panel, controls, field notes, status banner, both maps, and the passport panels. It also holds the inline SVG sprite — the badge, the five park icons, and the dead-end barricade — so the artwork needs no external files or network. Asset URLs carry a `?v=` query string for cache-busting on GitHub Pages. |
 | `styles.css` | All presentation: grid rendering, per-park colors, trail-marker/dead-end squares, passport stamp slots, the status banner's per-state colors, and the responsive layout. |
 | `game.js` | All rules and state as plain data — board creation, placement validation, random routes, scouting days, stamp and win detection, and rival targeting. No DOM access, so every rule is testable in isolation. |
 | `ui.js` | Rendering and event wiring: builds the grids, tracks the placement cursor, gates input by phase, runs the turn loop with the rival's ~600 ms delay, writes the field notes and banner, and resets state on New Season. It delegates every rule to `game.js`. |
@@ -71,7 +75,7 @@ it is and what just happened.
 | `tests/simulate-games.html` | 100 complete games through the full turn loop. |
 | `tests/ai-benchmark.html` | 1,000 games per strategy: random roaming vs roam-and-follow. |
 | `tests/ai-audit.html` | Rival-memory lifetime, off-cadence calls, and scouting-day legality. |
-| `tests/ui-harness.html` | Drives the real page in an iframe: intro, acreage, placement gating, a full season, the day counters, and the New Season reset. |
+| `tests/ui-harness.html` | Drives the real page in an iframe: intro copy, badge and park icons, acreage, placement gating, a full season with both square icons drawn, the day counters, and the New Season reset. |
 | `.github/workflows/pages.yml` | Publishes the repo root to GitHub Pages on push to `main`. |
 
 Board state is a plain object — `{ size, grid, days, parks }`, where
@@ -111,7 +115,7 @@ and read the `<pre>` block, which ends in an explicit pass/fail line.
 | File | What it asserts | Latest run |
 | --- | --- | --- |
 | `tests/placement-tests.html` | Overlap and out-of-bounds rejection, board clearing, 10,000 random routes being in-bounds, non-overlapping and exactly 17 cells, and that a park is stamped only once its final square is found. | ALL TESTS PASSED |
-| `tests/simulate-games.html` | 100 complete games each end with exactly one winner inside 200 turns. | 100/100, max 184 turns, average 105.8 |
+| `tests/simulate-games.html` | 100 complete games each end with exactly one winner inside 200 turns. | 100/100, max 161 turns, average 102.3 |
 | `tests/ai-benchmark.html` | 1,000 games per strategy, no square scouted twice, every game terminates, and the adjacent-park case keeps working the second park. | random 95.6 days average, roam-and-follow 60.4 (36.8% fewer) |
 | `tests/ai-audit.html` | Rival memory does not survive a New Season, repeated or skipped `chooseRivalSquare` calls neither drop nor repeat squares, and no scouting day is ever off-board or repeated — including from each corner. | ALL AUDIT CHECKS PASSED |
 | `tests/ui-harness.html` | The page itself, end to end. Needs same-origin iframe access: open it over `python3 -m http.server`, or in Chrome with `--allow-file-access-from-files`. | UI SMOKE RUN PASSED |

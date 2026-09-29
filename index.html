@@ -4,9 +4,55 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The California Five</title>
-<link rel="stylesheet" href="styles.css?v=14">
+<link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
+
+<!-- Drawn in-house so the page stays dependency-free: one symbol per park,
+     one for a dead end, and the Summer Classic badge. -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="icon-death-valley" viewBox="0 0 24 24">
+    <path d="M12 3c-4 0-6.6 2.6-6.6 6 0 2 1 3.5 2.3 4.4v2.2h8.6v-2.2c1.3-.9 2.3-2.4 2.3-4.4 0-3.4-2.6-6-6.6-6z"/>
+    <circle cx="9.4" cy="9.2" r="1.7" fill="#fff"/>
+    <circle cx="14.6" cy="9.2" r="1.7" fill="#fff"/>
+    <path d="M11 11.8h2l-1 2z" fill="#fff"/>
+    <path d="M4 17.6l16 4.2M20 17.6L4 21.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+  </symbol>
+  <symbol id="icon-joshua-tree" viewBox="0 0 24 24">
+    <path d="M11 22V7M11 13l-4-2.6V6M11 11.5l4-3V4.6M11 16l-3.4 2" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" fill="none"/>
+    <path d="M5.6 5.2l1.4-2 1.4 2zM13.6 3.6l1.4-2 1.4 2zM3.6 19.4L7.6 17l.6 3z"/>
+  </symbol>
+  <symbol id="icon-yosemite" viewBox="0 0 24 24">
+    <path d="M3.2 19C4.6 10.8 9 5.2 14 5.2c2 0 3 1.3 3 3.6V19z"/>
+    <path d="M17 8.8c1.5 2.8 2.4 6.3 2.9 10.2H17z" opacity=".7"/>
+    <path d="M2 21h20" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+  </symbol>
+  <symbol id="icon-kings-canyon" viewBox="0 0 24 24">
+    <path d="M3 18.5L4.6 7l4.5 4.6L12 4l2.9 7.6L19.4 7 21 18.5z"/>
+    <path d="M3.4 20.4h17.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <circle cx="4.6" cy="5.6" r="1.5"/><circle cx="12" cy="2.8" r="1.6"/><circle cx="19.4" cy="5.6" r="1.5"/>
+  </symbol>
+  <symbol id="icon-sequoia" viewBox="0 0 24 24">
+    <path d="M12 2l4.6 6.4h-9.2zM12 6.6l5.6 7.2H6.4zM12 11.4l6.8 7.4H5.2z"/>
+    <path d="M10.4 18.4h3.2V22h-3.2z"/>
+  </symbol>
+  <!-- A barricade across a forest road: the day is gone and the track ends. -->
+  <symbol id="icon-dead-end" viewBox="0 0 24 24">
+    <path d="M6.4 6v15M17.6 6v15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+    <path d="M2.5 6.5h19v4h-19zM2.5 12.5h19v4h-19z"/>
+    <path d="M4 10.5l4-4M9 10.5l4-4M14 10.5l4-4M4 16.5l4-4M9 16.5l4-4M14 16.5l4-4"
+      stroke="#f4f1e8" stroke-width="1.6" fill="none"/>
+  </symbol>
+  <symbol id="icon-badge" viewBox="0 0 120 120">
+    <path d="M60 4l50 18v34c0 30-21 51-50 60C31 107 10 86 10 56V22z" fill="#3d6b45"
+      stroke="#e0a458" stroke-width="4"/>
+    <path d="M22 84c8-16 16-26 24-33l10 12 8-14c8 8 16 21 24 35z" fill="#8bbf8f" opacity=".85"/>
+    <path d="M60 30l5 9h-10zM60 38l7.5 12h-15zM60 47l10 15H50z" fill="#1e3527"/>
+    <path d="M57 62h6v12h-6z" fill="#1e3527"/>
+    <circle cx="90" cy="32" r="8" fill="#f0c419"/>
+    <path d="M18 96h84" stroke="#e0a458" stroke-width="4" stroke-linecap="round"/>
+  </symbol>
+</svg>
 <header>
   <h1>The California Five</h1>
   <p class="tagline">The California National Park Summer Classic — you and your rival
@@ -16,8 +62,13 @@
 
 <div class="intro-backdrop" id="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
   <section class="intro">
-    <p class="intro-kicker">Est. 1949 · Sierra Nevada &amp; the desert parks</p>
-    <h2 id="intro-title">The California National Park Summer Classic</h2>
+    <div class="intro-head">
+      <svg class="intro-badge" role="img" aria-label="California National Park Summer Classic badge"><use href="#icon-badge"></use></svg>
+      <div>
+        <p class="intro-kicker">Est. 1949 · Sierra Nevada &amp; the desert parks</p>
+        <h2 id="intro-title">The California National Park Summer Classic</h2>
+      </div>
+    </div>
     <p>Every summer you and your rival meet at the Tioga Pass gate for the Classic.
       The rules have never changed: each of you draws a five-park itinerary, seals
       it, and hands it to the other. You spend the season chasing down the route
@@ -25,17 +76,17 @@
     <p>The pass opened late this year, on the fourth of July, after a heavy winter.
       An early El Niño closes it 100 days later. Every square you scout costs one
       trail day, so you have a hundred of them and no more.</p>
-    <p>Find every square of a park and you earn its cancellation stamp. Collect all
-      five stamps before your rival collects yours and the Classic is yours —
+    <p>Find every square of a park and you earn its stamp in your park passport.
+      Collect all five stamps before your rival and the Classic is yours —
       <strong>The California Five</strong>.</p>
 
     <h3>This year's five parks</h3>
     <ul class="intro-parks">
-      <li><span class="intro-park-name">Death Valley</span><span class="intro-park-cells">5 cells</span><span class="intro-park-acres">3,408,396 acres</span></li>
-      <li><span class="intro-park-name">Joshua Tree</span><span class="intro-park-cells">4 cells</span><span class="intro-park-acres">795,156 acres</span></li>
-      <li><span class="intro-park-name">Yosemite</span><span class="intro-park-cells">3 cells</span><span class="intro-park-acres">761,748 acres</span></li>
-      <li><span class="intro-park-name">Kings Canyon</span><span class="intro-park-cells">3 cells</span><span class="intro-park-acres">461,901 acres</span></li>
-      <li><span class="intro-park-name">Sequoia</span><span class="intro-park-cells">2 cells</span><span class="intro-park-acres">404,063 acres</span></li>
+      <li><svg class="park-icon death-valley" aria-hidden="true"><use href="#icon-death-valley"></use></svg><span class="intro-park-name">Death Valley</span><span class="intro-park-cells">5 cells</span><span class="intro-park-acres">3,408,396 acres</span></li>
+      <li><svg class="park-icon joshua-tree" aria-hidden="true"><use href="#icon-joshua-tree"></use></svg><span class="intro-park-name">Joshua Tree</span><span class="intro-park-cells">4 cells</span><span class="intro-park-acres">795,156 acres</span></li>
+      <li><svg class="park-icon yosemite" aria-hidden="true"><use href="#icon-yosemite"></use></svg><span class="intro-park-name">Yosemite</span><span class="intro-park-cells">3 cells</span><span class="intro-park-acres">761,748 acres</span></li>
+      <li><svg class="park-icon kings-canyon" aria-hidden="true"><use href="#icon-kings-canyon"></use></svg><span class="intro-park-name">Kings Canyon</span><span class="intro-park-cells">3 cells</span><span class="intro-park-acres">461,901 acres</span></li>
+      <li><svg class="park-icon sequoia" aria-hidden="true"><use href="#icon-sequoia"></use></svg><span class="intro-park-name">Sequoia</span><span class="intro-park-cells">2 cells</span><span class="intro-park-acres">404,063 acres</span></li>
     </ul>
 
     <div class="buttons">
@@ -137,7 +188,7 @@
   </section>
 </main>
 
-<script src="game.js?v=14"></script>
-<script src="ui.js?v=14"></script>
+<script src="game.js?v=15"></script>
+<script src="ui.js?v=15"></script>
 </body>
 </html>
