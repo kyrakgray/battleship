@@ -140,12 +140,6 @@ kbd {
 .message { min-height: 20px; margin: 4px 0 0; font-size: 14px; }
 .message.error { color: #ff8a7a; }
 .message.info { color: #8fd694; }
-.message.result {
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-top: 8px;
-}
 
 .boards {
   display: flex;
@@ -189,10 +183,9 @@ kbd {
 .board.disabled .cell { cursor: default; }
 .board.disabled .cell:hover { background: var(--terrain); }
 
-/* Trail marker and dead end. */
-.cell.marker { background: #d8622c; border-color: #8f3a15; }
+/* Trail marker (painted in the park's own colour) and dead end. */
+.cell.marker { border-color: rgba(0, 0, 0, 0.5); }
 .cell.dead-end { background: #d8d2c3; border-color: #aaa392; }
-.board.disabled .cell.marker:hover { background: #d8622c; }
 .board.disabled .cell.dead-end:hover { background: #d8d2c3; }
 
 /* Each park signs its own trail markers; a dead end is a switchback that
@@ -207,7 +200,7 @@ kbd {
   box-sizing: border-box;
   pointer-events: none;
 }
-.cell.marker .cell-icon { fill: #40160a; color: #40160a; }
+.cell.marker .cell-icon { fill: rgba(0, 0, 0, 0.62); color: rgba(0, 0, 0, 0.62); }
 .cell.dead-end .cell-icon { fill: #8a8372; color: #8a8372; }
 .cell.revealed .cell-icon { fill: rgba(0, 0, 0, 0.6); color: rgba(0, 0, 0, 0.6); }
 
@@ -230,8 +223,8 @@ kbd {
 
 .status-panel ul { list-style: none; margin: 0; padding: 0; }
 
-/* Passport: a booklet page per explorer, cancelled with a dated rubber
-   stamp in the park's colour on the day that park is completed. */
+/* Passport: a booklet page per explorer, inked with a dated rubber stamp
+   in the park's colour on the day that park is completed. */
 .passport-book {
   background: linear-gradient(180deg, #f5efdd, #e6dcc2);
   border: 1px solid #b9a882;
@@ -260,9 +253,9 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  min-height: 62px;
+  min-height: 54px;
   padding: 9px 10px;
-  padding-right: 104px;
+  padding-right: 116px;
   border: 1px dashed rgba(90, 72, 40, 0.4);
   border-radius: 6px;
   font-size: 13px;
@@ -277,21 +270,23 @@ kbd {
   color: #3b3323;
 }
 
+/* A rubber stamp sized to the passport line: a rounded rectangle rather
+   than a ring, so the park name and the date sit inside the border. */
 .stamp-mark {
   position: absolute;
   top: 50%;
-  right: 8px;
+  right: 7px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 88px;
-  height: 88px;
-  padding: 6px;
+  width: 104px;
+  height: 46px;
+  padding: 3px 5px;
   border: 2px solid var(--park-color, var(--trail));
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.5),
-    inset 0 0 0 4px var(--park-color, var(--trail));
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    inset 0 0 0 2px var(--park-color, var(--trail));
   color: var(--park-color, var(--trail));
   text-align: center;
   text-transform: uppercase;
@@ -300,28 +295,163 @@ kbd {
   transform: translateY(-50%) rotate(var(--tilt, -4deg));
   pointer-events: none;
 }
-.stamp-mark-top { font-size: 6px; letter-spacing: 1px; font-weight: 700; }
+.stamp-mark-top { font-size: 5px; letter-spacing: 0.8px; font-weight: 700; }
 .stamp-mark-park {
-  margin: 2px 0;
-  font-size: 10px;
+  margin: 1px 0;
+  font-size: 9px;
   font-weight: 800;
   line-height: 1.1;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 .stamp-mark-date {
-  padding: 1px 4px;
+  padding: 0 3px;
   border-top: 1px solid currentColor;
   border-bottom: 1px solid currentColor;
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 700;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
 }
 .stamp-mark-place {
-  margin-top: 2px;
-  font-size: 6px;
+  margin-top: 1px;
+  font-size: 5px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
 }
+
+/* Route planning is its own view: the log, the calendar, the rival map and
+   both passports only appear once the itineraries have been traded. */
+body.planning .log-panel,
+body.planning .season-clock,
+body.planning #rival-wrap,
+body.planning .passport-book { display: none; }
+
+/* The planning map: paper, contour washes and a pencilled grid. */
+body.planning .player-wrap {
+  padding: 18px 20px 22px;
+  border: 1px solid #b9a882;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 22% 28%, rgba(120, 150, 110, 0.25) 0 14%, transparent 14.5%),
+    radial-gradient(circle at 22% 28%, rgba(120, 150, 110, 0.22) 0 22%, transparent 22.5%),
+    radial-gradient(circle at 74% 66%, rgba(150, 130, 90, 0.22) 0 16%, transparent 16.5%),
+    radial-gradient(circle at 74% 66%, rgba(150, 130, 90, 0.18) 0 26%, transparent 26.5%),
+    linear-gradient(180deg, #f2e7c9, #e4d5ad);
+  color: #3b3323;
+  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.25), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+body.planning .player-wrap h2 {
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #4a3a1e;
+}
+body.planning .player-wrap .board-note { color: #6a5b3d; opacity: 0.9; }
+body.planning .player-wrap .label { color: #6a5b3d; opacity: 0.9; }
+body.planning .player-wrap .board { gap: 0; }
+body.planning .player-wrap .cell {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(90, 72, 40, 0.35);
+  border-radius: 0;
+}
+body.planning .player-wrap .board:not(.disabled) .cell:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+body.planning .player-wrap .cell.park { border-color: rgba(0, 0, 0, 0.4); }
+body.planning .player-wrap .cell.preview-valid { background: var(--valid); }
+body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
+
+/* Sealing window: the back of an envelope closed with a wax seal. */
+.seal-window { max-width: 460px; text-align: center; }
+.seal-window h2 { margin-bottom: 18px; }
+.seal-note { font-size: 14px; opacity: 0.85; }
+
+.envelope {
+  position: relative;
+  width: 280px;
+  height: 180px;
+  margin: 0 auto 20px;
+  border-radius: 6px;
+  /* The two diagonals are the side flaps folded in behind the envelope. */
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 1px),
+      rgba(90, 72, 40, 0.35) 50%, transparent calc(50% + 1px)),
+    linear-gradient(to bottom left, transparent calc(50% - 1px),
+      rgba(90, 72, 40, 0.35) 50%, transparent calc(50% + 1px)),
+    linear-gradient(180deg, #efe3c6, #ddcda6);
+  box-shadow: inset 0 0 0 1px rgba(90, 72, 40, 0.3), 0 8px 20px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+/* The top flap folded down over the two side flaps. */
+.envelope-flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52%;
+  background: linear-gradient(180deg, #f5ebd2, #e6d8b6);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 2px 3px rgba(90, 72, 40, 0.35));
+}
+
+.wax-seal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #c2472f, #8d2416 62%, #6d180d);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.18),
+    inset 0 -4px 10px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.5);
+  color: #f7e6d2;
+  transform: translate(-50%, -50%) rotate(-6deg);
+}
+.wax-bear {
+  width: 58px;
+  height: 34px;
+  fill: currentColor;
+  opacity: 0.92;
+}
+.wax-text {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* Result window: the season card for both explorers. */
+.result-window { max-width: 560px; }
+.result-table {
+  width: 100%;
+  margin: 6px 0 20px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.result-table th,
+.result-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(237, 242, 233, 0.16);
+  text-align: right;
+}
+.result-table thead th {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--trail);
+}
+.result-table th[scope='row'],
+.result-table thead th:first-child { text-align: left; font-weight: 600; }
+.result-table tbody th { color: #cdd8c8; font-weight: 500; }
+.result-table td { font-variant-numeric: tabular-nums; }
+#game-over .intro { border-color: #3fa34d; }
+#game-over.lost .intro { border-color: #c0392b; }
 
 /* Intro: the Summer Classic story, shown on load and from "The story". */
 .intro-backdrop {
@@ -459,24 +589,22 @@ kbd {
   transition: width 0.2s ease;
 }
 
-/* Explorer's log: a field journal — ruled paper, a stitched spine, and the
-   date of each entry in the margin. */
+/* Explorer's log: a field journal — plain paper, a stitched spine, and a
+   hairline under each entry so nothing is ruled through. */
 .log-panel {
-  background: #efe6d0 repeating-linear-gradient(
-    180deg, transparent 0 25px, rgba(90, 72, 40, 0.16) 25px 26px);
+  background: #efe6d0;
   border: 1px solid #b9a882;
   border-left: 12px solid #6b4b2a;
   border-radius: 8px;
   color: #35301f;
-  box-shadow: inset 0 0 40px rgba(120, 96, 52, 0.25);
 }
 .log-head {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  border-bottom: 2px solid rgba(90, 72, 40, 0.4);
-  margin-bottom: 8px;
-  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(90, 72, 40, 0.45);
+  margin-bottom: 6px;
+  padding-bottom: 6px;
 }
 .log-panel h3 {
   margin: 0;
@@ -503,13 +631,22 @@ kbd {
   max-height: calc(4 * 27px);
   overflow-y: auto;
 }
+.log.empty { min-height: 27px; }
+.log.empty::before {
+  content: 'No entries yet — the season starts once the itineraries are traded.';
+  display: block;
+  padding: 5px 0;
+  font-style: italic;
+  opacity: 0.6;
+}
+
 .log-entry {
   display: flex;
   gap: 10px;
   align-items: baseline;
   padding: 4px 0;
   line-height: 18px;
-  border-bottom: 1px dotted rgba(90, 72, 40, 0.35);
+  border-bottom: 1px solid rgba(90, 72, 40, 0.2);
 }
 .log-entry:last-child { border-bottom: none; }
 .log-date {

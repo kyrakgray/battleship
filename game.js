@@ -268,7 +268,7 @@
     };
   }
 
-  /** Date line inked into a cancellation stamp, e.g. "JUL 09 2026". */
+  /** Date line inked into a passport stamp, e.g. "JUL 09 2026". */
   function stampDateLabel(dayNumber) {
     var parts = seasonDateParts(dayNumber);
     return parts.month + ' ' + parts.paddedDay + ' ' + parts.year;

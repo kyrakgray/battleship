@@ -40,12 +40,15 @@ root and browse to `http://localhost:8000/`.
 
 ## How to play
 
-Select a park, press <kbd>R</kbd> to toggle across/down, and click a square on
-**The Route You Drew** to lay it down — a preview follows the cursor, green when
-the placement is legal and red when it is not. Parks run in straight lines only,
-cannot overlap, and cannot run off the map. **Draw a Random Route** fills the
-map for you and **Clear Route** wipes it. **Seal & Trade Routes** unlocks once
-all five parks are down.
+Route planning has the page to itself: a single paper map, no log and no
+calendar. Select a park, press <kbd>R</kbd> to toggle across/down, and click a
+square on **Your Route Map** to lay it down — a preview follows the cursor,
+green when the placement is legal and red when it is not. Parks run in straight
+lines only, cannot overlap, and cannot run off the map. **Draw a Random Route**
+fills the map for you and **Clear Route** wipes it. **Seal & Trade Routes**
+unlocks once all five parks are down and shows the itinerary sealed in an
+envelope under a CA 5 wax seal; trading it starts the season and brings out the
+rival map, the calendar, the log and both passports.
 
 Two windows open the game. **The Story** tells the story of the Classic behind
 a park badge and lists the year's five parks, each beside its own icon, and
@@ -54,18 +57,20 @@ the controls during the season, so either can be reopened mid-game.
 
 You take the first scouting day by clicking a square on **The Route Drawn For
 You**. A pale square carrying a road barricade is a dead end — a day burned on
-a forest road. An orange square is a trail marker drawn with the icon of the
-park you are standing in: Half Dome for Yosemite, a crown for Kings Canyon, a
-Joshua tree, a sequoia, and a skull and crossbones for Death Valley. The
-message names the park you are on. Finding
-the last square of a park cancels it into your passport with a dated rubber
+a forest road. A coloured square is a trail marker drawn with the icon of the
+park you are standing in, in that park's own colour: Half Dome for Yosemite, a
+crown for Kings Canyon, a Joshua tree, a sequoia, and a skull and crossbones
+for Death Valley. The message names the park you are on. Finding
+the last square of a park stamps it into your passport with a dated rubber
 stamp in that park's colour, in the passport booklet under each map. The
 calendar under the banner opens on July 4, 2026 and turns over only once both
 explorers have taken the day; beside it are the trail days you have spent of
 your hundred, the days left before the pass closes, and how many days your
 rival has spent. The Explorer's Log keeps every dated entry of the season —
-the window shows the last few and scrolls back to the first. The banner above
-the maps always says whose day it is and what just happened.
+the window shows the last few and scrolls back to the first. When either
+explorer collects all five stamps, a result window reports the winner and both
+season cards: trail days, squares found, dead ends, scouting accuracy, stamps
+collected, and days left before the pass closes.
 
 ## File structure
 
@@ -79,7 +84,7 @@ the maps always says whose day it is and what just happened.
 | `tests/simulate-games.html` | 100 complete games through the full turn loop. |
 | `tests/ai-benchmark.html` | 1,000 games per strategy: random roaming vs roam-and-follow. |
 | `tests/ai-audit.html` | Rival-memory lifetime, off-cadence calls, and scouting-day legality. |
-| `tests/ui-harness.html` | Drives the real page in an iframe: story → how-to → Enter the Classic and reopening both mid-game, badge and park icons, acreage, placement gating, the calendar holding and turning over, a full season with both square icons drawn and dated cancellation stamps, and the New Season reset. |
+| `tests/ui-harness.html` | Drives the real page in an iframe: story → how-to → Enter the Classic and reopening both mid-game, badge and park icons, acreage, placement gating, the calendar holding and turning over, a full season with both square icons drawn and dated passport stamps, and the New Season reset. |
 | `.github/workflows/pages.yml` | Publishes the repo root to GitHub Pages on push to `main`. |
 
 Board state is a plain object — `{ size, grid, days, parks }`, where

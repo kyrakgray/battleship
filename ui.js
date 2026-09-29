@@ -43,6 +43,18 @@
     btnHowToClose: document.getElementById('btn-how-to-close'),
     btnHowToBack: document.getElementById('btn-how-to-back'),
     intro: document.getElementById('intro'),
+    seal: document.getElementById('seal'),
+    btnSealGo: document.getElementById('btn-seal-go'),
+    btnSealBack: document.getElementById('btn-seal-back'),
+    gameOver: document.getElementById('game-over'),
+    gameOverKicker: document.getElementById('game-over-kicker'),
+    gameOverTitle: document.getElementById('game-over-title'),
+    gameOverSub: document.getElementById('game-over-sub'),
+    gameOverStats: document.getElementById('game-over-stats'),
+    btnOverClose: document.getElementById('btn-over-close'),
+    btnOverNew: document.getElementById('btn-over-new'),
+    playerBoardTitle: document.getElementById('player-board-title'),
+    playerBoardNote: document.getElementById('player-board-note'),
     btnIntroOpen: document.getElementById('btn-intro-open'),
     btnIntroHowTo: document.getElementById('btn-intro-how-to'),
     daysUsed: document.getElementById('days-used'),
@@ -50,6 +62,7 @@
     daysLeft: document.getElementById('days-left'),
     clockFill: document.getElementById('clock-fill'),
     rivalDaysUsed: document.getElementById('rival-days-used'),
+    daysUsedNote: document.getElementById('days-used-note'),
     calendarMonth: document.getElementById('calendar-month'),
     calendarDay: document.getElementById('calendar-day'),
     calendarWeekday: document.getElementById('calendar-weekday'),
@@ -163,7 +176,8 @@
         var day = state.playerBoard.days[row][col];
         cell.className = 'cell' + (parkId ? ' park' : '') +
           (day ? ' ' + day : '');
-        cell.style.background = parkId && !day ? B.getPark(parkId).color : '';
+        cell.style.background = parkId && day !== B.DAY.DEAD_END
+          ? B.getPark(parkId).color : '';
         paintIcon(cell, day, parkId);
       }
     }
@@ -181,9 +195,12 @@
         var cell = rivalCells[cellKey(row, col)];
         var day = state.rivalBoard.days[row][col];
         var parkId = state.revealRival ? state.rivalBoard.grid[row][col] : null;
+        var foundParkId = day === B.DAY.TRAIL_MARKER
+          ? state.rivalBoard.grid[row][col] : null;
         var reveal = Boolean(parkId) && day !== B.DAY.TRAIL_MARKER;
         cell.className = 'cell' + (day ? ' ' + day : '') + (reveal ? ' revealed' : '');
-        cell.style.background = reveal ? B.getPark(parkId).color : '';
+        cell.style.background = reveal ? B.getPark(parkId).color
+          : foundParkId ? B.getPark(foundParkId).color : '';
         paintIcon(cell, day, state.rivalBoard.grid[row][col], reveal);
       }
     }
@@ -211,10 +228,10 @@
   }
 
   /**
-   * Passports: one page slot per park, cancelled with a dated stamp in the
-   * park's own colour once every square of that park has been found. The
-   * passport under a map belongs to whoever is scouting that map — your rival
-   * scouts the route you drew, so their stamps sit under your map.
+   * Passports: one page slot per park, inked with a dated stamp in the park's
+   * own colour once every square of that park has been found. The passport
+   * under a map belongs to whoever is scouting that map — your rival scouts
+   * the route you drew, so their stamps sit under your map.
    */
   function renderPassports() {
     [
@@ -239,7 +256,7 @@
         detail.textContent = type.length + ' cells · ' + acreage(type);
         item.appendChild(detail);
 
-        if (stamped) item.appendChild(cancellationStamp(type, placed.stampedOnDay));
+        if (stamped) item.appendChild(passportStamp(type, placed.stampedOnDay));
 
         side.list.appendChild(item);
       });
@@ -247,10 +264,10 @@
   }
 
   /**
-   * A cancellation stamp the way the rangers ink them: a ringed rubber mark
+   * A passport stamp the way the rangers ink them: a bordered rubber mark
    * carrying the park, the state, and the date the explorer finished it.
    */
-  function cancellationStamp(type, dayNumber) {
+  function passportStamp(type, dayNumber) {
     var mark = document.createElement('span');
     mark.className = 'stamp-mark';
     mark.style.setProperty('--tilt', (type.name.length % 5) - 2.5 + 'deg');
@@ -309,12 +326,11 @@
     els.calendarDay.textContent = String(today.day);
     els.calendarWeekday.textContent = today.weekday;
     els.daysUsed.textContent = String(used);
+    els.daysUsedNote.textContent = String(used);
     els.daysTotal.textContent = String(B.SEASON_DAYS);
     els.daysLeft.textContent = String(B.daysLeft(state.rivalBoard));
     els.closingDate.textContent = B.stampDateLabel(B.SEASON_DAYS);
     els.rivalDaysUsed.textContent = String(rivalDaysSpent());
-    els.calendarNote.classList.toggle('waiting',
-      playerDaysSpent() > rivalDaysSpent());
     els.clockFill.style.width = (used / B.SEASON_DAYS * 100) + '%';
   }
 
@@ -332,6 +348,7 @@
     text.textContent = entry.text;
     item.appendChild(text);
     els.log.appendChild(item);
+    els.log.classList.remove('empty');
   }
 
   function scrollLogToEnd() {
@@ -347,6 +364,7 @@
   function renderLog() {
     els.log.innerHTML = '';
     state.log.forEach(appendLogEntry);
+    els.log.classList.toggle('empty', state.log.length === 0);
     scrollLogToEnd();
   }
 
@@ -367,12 +385,23 @@
     els.message.className = 'message' + (kind ? ' ' + kind : '');
   }
 
+  /**
+   * Route planning is its own view: one map to draw on, and no log, calendar
+   * or rival map until the itineraries have been traded.
+   */
   function setPhase(phase) {
     state.phase = phase;
     var placing = phase === PHASES.PLACEMENT;
     els.playerBoard.classList.toggle('disabled', !placing);
     els.placementControls.classList.toggle('hidden', !placing);
     els.seasonControls.classList.toggle('hidden', placing);
+    document.body.classList.toggle('planning', placing);
+    document.body.classList.toggle('season', !placing);
+    els.playerBoardTitle.textContent = placing
+      ? 'Your Route Map' : 'The Route You Drew';
+    els.playerBoardNote.textContent = placing
+      ? 'Lay out the five parks you will hand to your rival.'
+      : "Sealed and handed to your rival — they're scouting it.";
     els.phaseLabel.textContent =
       placing ? 'Route planning — draw your five parks'
         : phase === PHASES.OVER
@@ -477,8 +506,15 @@
     return note;
   }
 
+  /** The finished itinerary goes into the envelope before it is traded. */
+  function openSeal() {
+    if (!B.allParksPlaced(state.playerBoard)) return;
+    els.seal.classList.remove('hidden');
+  }
+
   function startGame() {
     if (!B.allParksPlaced(state.playerBoard)) return;
+    els.seal.classList.add('hidden');
     B.clearBoard(state.rivalBoard);
     B.placeRouteRandomly(state.rivalBoard);
     state.hover = null;
@@ -495,6 +531,83 @@
     render();
   }
 
+  /** Total squares an itinerary covers — the five parks laid end to end. */
+  var ROUTE_SQUARES = B.PARKS.reduce(function (sum, park) {
+    return sum + park.length;
+  }, 0);
+
+  /** One explorer's season in numbers, read off the map they scouted. */
+  function seasonCard(board) {
+    var markers = 0;
+    var deadEnds = 0;
+    for (var row = 0; row < B.BOARD_SIZE; row++) {
+      for (var col = 0; col < B.BOARD_SIZE; col++) {
+        var day = board.days[row][col];
+        if (day === B.DAY.TRAIL_MARKER) markers++;
+        else if (day === B.DAY.DEAD_END) deadEnds++;
+      }
+    }
+    var days = markers + deadEnds;
+    return {
+      days: days,
+      markers: markers,
+      deadEnds: deadEnds,
+      stamps: B.stampedParkIds(board).length,
+      accuracy: days ? Math.round(markers / days * 100) : 0,
+      daysLeft: B.SEASON_DAYS - days
+    };
+  }
+
+  function statRow(label, playerValue, rivalValue) {
+    var row = document.createElement('tr');
+    var head = document.createElement('th');
+    head.scope = 'row';
+    head.textContent = label;
+    row.appendChild(head);
+    [playerValue, rivalValue].forEach(function (value) {
+      var cell = document.createElement('td');
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+    return row;
+  }
+
+  /** The result window: who took the Classic, and both season cards. */
+  function renderGameOver(winner) {
+    var you = seasonCard(state.rivalBoard);
+    var rival = seasonCard(state.playerBoard);
+    var wonByPlayer = winner === 'player';
+
+    els.gameOver.classList.toggle('lost', !wonByPlayer);
+    els.gameOverKicker.textContent = wonByPlayer
+      ? 'Summer Classic · ' + B.stampDateLabel(you.days)
+      : 'Summer Classic · ' + B.stampDateLabel(rival.days);
+    els.gameOverTitle.textContent = wonByPlayer
+      ? 'You collected the California Five'
+      : 'Your rival collected the California Five';
+    els.gameOverSub.textContent = wonByPlayer
+      ? 'All five parks stamped in ' + you.days + ' trail days, with ' +
+        you.daysLeft + ' left before Tioga Pass closes.'
+      : 'Your rival finished the itinerary you drew in ' + rival.days +
+        ' trail days. You were ' + (ROUTE_SQUARES - you.markers) +
+        ' squares short.';
+
+    els.gameOverStats.innerHTML = '';
+    [
+      statRow('Trail days spent', you.days, rival.days),
+      statRow('Squares found', you.markers + ' of ' + ROUTE_SQUARES,
+        rival.markers + ' of ' + ROUTE_SQUARES),
+      statRow('Dead ends', you.deadEnds, rival.deadEnds),
+      statRow('Scouting accuracy', you.accuracy + '%', rival.accuracy + '%'),
+      statRow('Passport stamps', you.stamps + ' of 5', rival.stamps + ' of 5'),
+      statRow('Days left in the season', you.daysLeft, rival.daysLeft)
+    ].forEach(function (row) {
+      els.gameOverStats.appendChild(row);
+    });
+
+    els.gameOver.classList.remove('hidden');
+  }
+
   function endGame(winner) {
     state.winner = winner;
     setPhase(PHASES.OVER);
@@ -503,10 +616,11 @@
       ? 'The California Five! All five parks stamped in ' + days + ' trail days.'
       : 'Your rival finished their itinerary first, in ' + days + ' trail days.';
     addLog('system', text, days);
-    setMessage(text, (winner === 'player' ? 'info' : 'error') + ' result');
+    setMessage(text, winner === 'player' ? 'info' : 'error');
     els.btnReveal.classList.toggle('hidden', winner === 'player');
     els.btnReveal.textContent = 'Reveal the Route You Missed';
     render();
+    renderGameOver(winner);
   }
 
   function handleRivalClick(row, col) {
@@ -576,6 +690,8 @@
     state.winner = null;
     state.revealRival = false;
     els.btnReveal.classList.add('hidden');
+    els.gameOver.classList.add('hidden');
+    els.seal.classList.add('hidden');
     setPhase(PHASES.PLACEMENT);
     setOrientation(state.orientation);
     updateStartButton();
@@ -681,7 +797,15 @@
 
     els.btnIntroOpen.addEventListener('click', openStory);
 
-    els.btnStart.addEventListener('click', startGame);
+    els.btnStart.addEventListener('click', openSeal);
+    els.btnSealGo.addEventListener('click', startGame);
+    els.btnSealBack.addEventListener('click', function () {
+      els.seal.classList.add('hidden');
+    });
+    els.btnOverClose.addEventListener('click', function () {
+      els.gameOver.classList.add('hidden');
+    });
+    els.btnOverNew.addEventListener('click', newGame);
     els.btnNewGame.addEventListener('click', newGame);
   }
 

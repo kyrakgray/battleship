@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The California Five</title>
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 </head>
-<body>
+<body class="planning">
 
 <!-- Drawn in-house so the page stays dependency-free: one symbol per park,
      one for a dead end, and the Summer Classic badge. -->
@@ -42,6 +42,10 @@
     <path d="M2.5 6.5h19v4h-19zM2.5 12.5h19v4h-19z"/>
     <path d="M4 10.5l4-4M9 10.5l4-4M14 10.5l4-4M4 16.5l4-4M9 16.5l4-4M14 16.5l4-4"
       stroke="#f4f1e8" stroke-width="1.6" fill="none"/>
+  </symbol>
+  <!-- The bear off the state flag, for the wax seal on a sealed itinerary. -->
+  <symbol id="icon-bear" viewBox="0 0 120 70">
+    <path d="M8 56c2-6 4-9 7-11 1-6 4-11 9-14 4-2 9-3 14-3 6 0 10 1 14 3 5-4 11-7 18-8 5-1 9-2 12-5 1 3 0 6-2 8 4-1 8-1 12 1-2 2-5 3-8 4 6 2 11 6 14 11 3 4 4 9 4 14 0 3-1 5-3 5-2 0-3-2-3-4 0-3-1-6-3-8-1 4-4 7-8 9-6 3-13 4-20 4H30c-5 0-9 1-12 3-2 2-4 4-5 7z"/>
   </symbol>
   <symbol id="icon-badge" viewBox="0 0 120 120">
     <path d="M60 4l50 18v34c0 30-21 51-50 60C31 107 10 86 10 56V22z" fill="#3d6b45"
@@ -119,17 +123,64 @@
       <li><strong>Spend a scouting day.</strong> Click a square on
         <em>The Route Drawn For You</em>. A dead end is a day burned on a forest road;
         a trail marker means you're on the route, and you're told which park. Find
-        every square of a park and it's cancelled into your passport, dated the day
+        every square of a park and it's stamped into your passport, dated the day
         you finished it. The <em>Explorer's Log</em> shows the last few days — scroll
         up inside to read the whole season.</li>
       <li><strong>Collect the California Five.</strong> Stamp all five parks before
-        your rival stamps yours. The banner above the maps always says whose day it
-        is and what just happened. <em>The Story</em> and <em>How to Play</em> stay in
-        the controls, so you can come back to either window mid-season.</li>
+        your rival stamps yours. The trail day counter beside the calendar tracks
+        how many of your hundred days you have spent and how many your rival has.
+        <em>The Story</em> and <em>How to Play</em> stay in the controls, so you can
+        come back to either window mid-season.</li>
     </ol>
     <div class="modal-actions">
       <button id="btn-how-to-back" class="link-btn" type="button">← The Story</button>
       <button id="btn-how-to-close" type="button">Enter the Classic</button>
+    </div>
+  </section>
+</div>
+
+<!-- Sealing the itinerary: the back of the envelope, closed with a wax seal. -->
+<div class="intro-backdrop hidden" id="seal" role="dialog" aria-modal="true" aria-labelledby="seal-title">
+  <section class="intro seal-window">
+    <p class="intro-kicker">Your itinerary is finished</p>
+    <h2 id="seal-title">Sealed and handed over</h2>
+    <div class="envelope" role="img" aria-label="A sealed envelope carrying your five-park itinerary">
+      <span class="envelope-flap"></span>
+      <span class="wax-seal">
+        <svg class="wax-bear" aria-hidden="true"><use href="#icon-bear"></use></svg>
+        <span class="wax-text">The CA 5</span>
+      </span>
+    </div>
+    <p class="seal-note">Five parks, written out and sealed. Your rival is handing
+      you theirs at the same moment — neither of you knows where the other's parks
+      sit. Tioga Pass opens on the fourth of July.</p>
+    <div class="modal-actions">
+      <button id="btn-seal-back" class="link-btn" type="button">← Redraw my route</button>
+      <button id="btn-seal-go" type="button">Trade Itineraries</button>
+    </div>
+  </section>
+</div>
+
+<!-- The season result, with both explorers' numbers side by side. -->
+<div class="intro-backdrop hidden" id="game-over" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+  <section class="intro result-window">
+    <div class="intro-head">
+      <svg class="intro-badge" role="img" aria-label="California National Park Summer Classic badge"><use href="#icon-badge"></use></svg>
+      <div>
+        <p class="intro-kicker" id="game-over-kicker">The Summer Classic is over</p>
+        <h2 id="game-over-title">The California Five</h2>
+      </div>
+    </div>
+    <p id="game-over-sub"></p>
+    <table class="result-table">
+      <thead>
+        <tr><th scope="col">Season card</th><th scope="col">You</th><th scope="col">Rival</th></tr>
+      </thead>
+      <tbody id="game-over-stats"></tbody>
+    </table>
+    <div class="modal-actions">
+      <button id="btn-over-close" class="link-btn" type="button">Look over the maps</button>
+      <button id="btn-over-new" type="button">New Season</button>
     </div>
   </section>
 </div>
@@ -184,33 +235,33 @@
         <strong id="closing-date">OCT 11 2026</strong>, in
         <strong id="days-left">100</strong> days</p>
       <div class="clock-bar"><span id="clock-fill"></span></div>
-      <p class="clock-note" id="calendar-note">Both explorers scout the same date;
-        the calendar turns over once your rival has taken their day. Your rival has
-        spent <strong id="rival-days-used">0</strong> trail days.</p>
+      <p class="clock-note" id="calendar-note">Total scouting days on trail —
+        you <strong id="days-used-note">0</strong>, your rival
+        <strong id="rival-days-used">0</strong>.</p>
     </div>
   </section>
 
   <section class="boards">
-    <div class="board-wrap">
-      <h2>The Route You Drew</h2>
-      <p class="board-note">Sealed and handed to your rival — they're scouting it.</p>
+    <div class="board-wrap player-wrap" id="player-wrap">
+      <h2 id="player-board-title">Your Route Map</h2>
+      <p class="board-note" id="player-board-note">Lay out the five parks you will hand to your rival.</p>
       <div class="board" id="player-board"></div>
       <div class="panel status-panel passport-book">
         <div class="passport-head">
           <h3>Rival's Passport</h3>
-          <p class="passport-sub">National Park Passport · Cancellations</p>
+          <p class="passport-sub">National Park Passport</p>
         </div>
         <ul class="passport" id="status-player"></ul>
       </div>
     </div>
-    <div class="board-wrap">
+    <div class="board-wrap" id="rival-wrap">
       <h2>The Route Drawn For You</h2>
       <p class="board-note">Five parks are hidden here. Scout them out.</p>
       <div class="board disabled" id="rival-board" aria-disabled="true"></div>
       <div class="panel status-panel passport-book">
         <div class="passport-head">
           <h3>Your Passport</h3>
-          <p class="passport-sub">National Park Passport · Cancellations</p>
+          <p class="passport-sub">National Park Passport</p>
         </div>
         <ul class="passport" id="status-rival"></ul>
       </div>
@@ -218,7 +269,7 @@
   </section>
 </main>
 
-<script src="game.js?v=16"></script>
-<script src="ui.js?v=16"></script>
+<script src="game.js?v=17"></script>
+<script src="ui.js?v=17"></script>
 </body>
 </html>
