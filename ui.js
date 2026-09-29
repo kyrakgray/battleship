@@ -43,6 +43,7 @@
     statusPlayer: document.getElementById('status-player'),
     statusRival: document.getElementById('status-rival'),
     statusBar: document.getElementById('status-bar'),
+    tracker: document.getElementById('tracker'),
     howTo: document.getElementById('how-to'),
     btnHowToOpen: document.getElementById('btn-how-to-open'),
     btnHowToClose: document.getElementById('btn-how-to-close'),
@@ -420,10 +421,11 @@
           : phase === PHASES.PLAYER_TURN
             ? 'Your scouting day — pick a square'
             : 'Your rival is out scouting…';
-    els.statusBar.className = 'status' +
-      (phase === PHASES.PLAYER_TURN ? ' your-turn'
-        : phase === PHASES.RIVAL_TURN ? ' waiting'
-          : phase === PHASES.OVER ? ' over' : '');
+    var tone = phase === PHASES.PLAYER_TURN ? ' your-turn'
+      : phase === PHASES.RIVAL_TURN ? ' waiting'
+        : phase === PHASES.OVER ? ' over' : '';
+    els.statusBar.className = 'status' + tone;
+    els.tracker.className = 'tracker' + tone;
     renderRivalBoard();
   }
 

@@ -125,12 +125,15 @@
 
     check('the log and the tracker share one row',
       d.querySelector('.field-row').contains(d.querySelector('.log-panel')) &&
-      d.querySelector('.field-row').contains($('season-clock')) &&
-      d.querySelector('.field-row').contains($('status-bar')));
-    check('each passport sits with its own map',
-      $('player-wrap').querySelector('.board-row')
-        .contains($('status-player')) &&
-      $('rival-wrap').querySelector('.board-row').contains($('status-rival')));
+      d.querySelector('.field-row').contains($('tracker')));
+    check('the status line and the calendar are one panel',
+      $('tracker').contains($('status-bar')) &&
+      $('tracker').contains($('season-clock')));
+    check('each passport is its own cell of the maps grid',
+      d.querySelector('.boards').contains($('player-passport')) &&
+      d.querySelector('.boards').contains($('rival-passport')) &&
+      $('player-passport').contains($('status-player')) &&
+      $('rival-passport').contains($('status-rival')));
     check('passports stay closed until the season starts',
       d.querySelectorAll('.passport-book').length === 2 &&
       !visible(d.querySelector('.passport-book')));

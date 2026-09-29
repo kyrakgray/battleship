@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The California Five</title>
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body class="planning">
 
@@ -239,13 +239,13 @@
       <ol class="log" id="log" aria-live="polite"></ol>
     </section>
 
-    <div class="tracker">
-      <section class="status" id="status-bar">
+    <section class="tracker" id="tracker" aria-live="polite">
+      <div class="status" id="status-bar">
         <p class="turn" id="phase-label">Route planning</p>
         <p class="message" id="message" role="status" aria-live="polite"></p>
-      </section>
+      </div>
 
-      <section class="season-clock" id="season-clock" aria-live="polite">
+      <div class="season-clock" id="season-clock">
         <div class="calendar-leaf">
           <p class="calendar-month" id="calendar-month">JUL</p>
           <p class="calendar-day" id="calendar-day">4</p>
@@ -261,47 +261,45 @@
             you <strong id="days-used-note">0</strong>, your rival
             <strong id="rival-days-used">0</strong>.</p>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   </div>
 
   <p class="winner-flash hidden" id="winner-flash" role="status" aria-live="assertive"></p>
 
+  <!-- One grid: passports flank the maps when there is room, drop under
+       their own map when there is less, and stack when there is least. -->
   <section class="boards">
     <div class="board-wrap player-wrap" id="player-wrap">
       <h2 id="player-board-title">Your Route Map</h2>
       <p class="board-note" id="player-board-note">Lay out the five parks you will hand to your rival.</p>
-      <div class="board-row">
-        <!-- The state flag, greyed back, sits under the route grid while planning. -->
-        <img class="map-flag" src="flag.svg?v=19" alt="" aria-hidden="true">
-        <div class="board" id="player-board"></div>
-        <div class="panel status-panel passport-book">
-          <div class="passport-head">
-            <h3>Rival's Passport</h3>
-            <p class="passport-sub">National Park Passport</p>
-          </div>
-          <ul class="passport" id="status-player"></ul>
-        </div>
+      <!-- The state flag, greyed back, sits under the route grid while planning. -->
+      <img class="map-flag" src="flag.svg?v=20" alt="" aria-hidden="true">
+      <div class="board" id="player-board"></div>
+    </div>
+    <div class="panel status-panel passport-book player-passport" id="player-passport">
+      <div class="passport-head">
+        <h3>Rival's Passport</h3>
+        <p class="passport-sub">National Park Passport</p>
       </div>
+      <ul class="passport" id="status-player"></ul>
     </div>
     <div class="board-wrap" id="rival-wrap">
       <h2>The Route Drawn For You</h2>
       <p class="board-note">Five parks are hidden here. Scout them out.</p>
-      <div class="board-row">
-        <div class="board disabled" id="rival-board" aria-disabled="true"></div>
-        <div class="panel status-panel passport-book">
-          <div class="passport-head">
-            <h3>Your Passport</h3>
-            <p class="passport-sub">National Park Passport</p>
-          </div>
-          <ul class="passport" id="status-rival"></ul>
-        </div>
+      <div class="board disabled" id="rival-board" aria-disabled="true"></div>
+    </div>
+    <div class="panel status-panel passport-book rival-passport" id="rival-passport">
+      <div class="passport-head">
+        <h3>Your Passport</h3>
+        <p class="passport-sub">National Park Passport</p>
       </div>
+      <ul class="passport" id="status-rival"></ul>
     </div>
   </section>
 </main>
 
-<script src="game.js?v=19"></script>
-<script src="ui.js?v=19"></script>
+<script src="game.js?v=20"></script>
+<script src="ui.js?v=20"></script>
 </body>
 </html>

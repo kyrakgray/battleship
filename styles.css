@@ -59,10 +59,25 @@ main {
 .field-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: start;
+  align-items: stretch;
   gap: 16px;
 }
-.tracker { display: flex; flex-direction: column; gap: 12px; }
+/* Status line and calendar live in one panel, matching the log's height. */
+.tracker {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--grid-line);
+  border-left: 4px solid #5c8a68;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.tracker.your-turn { border-left-color: #3fa34d; }
+.tracker.waiting { border-left-color: var(--trail); }
+.tracker.over { border-left-color: #c0392b; }
+body.planning .tracker { border-left-width: 1px; }
 body.planning .field-row { grid-template-columns: minmax(0, 1fr); }
 
 /* The story window hands off to how to play, which opens the Classic. */
@@ -89,16 +104,7 @@ body.planning .field-row { grid-template-columns: minmax(0, 1fr); }
 }
 .link-btn:hover:not(:disabled) { background: none; color: #f2c88f; }
 
-.status {
-  background: var(--panel);
-  border: 1px solid var(--grid-line);
-  border-left: 4px solid #5c8a68;
-  border-radius: 8px;
-  padding: 12px 16px;
-}
-.status.your-turn { border-left-color: #3fa34d; }
-.status.waiting { border-left-color: var(--trail); }
-.status.over { border-left-color: #c0392b; }
+.status { padding: 0; }
 
 .turn {
   margin: 0;
@@ -166,27 +172,50 @@ kbd {
 .message.error { color: #ff8a7a; }
 .message.info { color: #8fd694; }
 
+/* Narrowest: each map with its own passport underneath it. */
 .boards {
-  display: flex;
-  gap: 28px;
-  flex-wrap: wrap;
+  display: grid;
   justify-content: center;
+  justify-items: center;
+  align-items: start;
+  gap: 16px 18px;
+  grid-template-columns: minmax(0, auto);
+  grid-template-areas:
+    "player-map"
+    "player-pass"
+    "rival-map"
+    "rival-pass";
 }
+#player-wrap { grid-area: player-map; }
+#player-passport { grid-area: player-pass; }
+#rival-wrap { grid-area: rival-map; }
+#rival-passport { grid-area: rival-pass; }
 
 .board-wrap { text-align: center; }
 .board-wrap .board { margin: 0 auto; }
+.boards .passport-book { width: min(100%, 340px); margin-top: 0; }
 
-/* Each passport sits beside its own map, on the outer edge of the page. */
-.board-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 14px;
+/* Both maps on one level, each passport under its own map. */
+@media (min-width: 760px) {
+  .boards {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "player-map rival-map"
+      "player-pass rival-pass";
+  }
 }
-.player-wrap .board-row { flex-direction: row-reverse; }
-.board-row .passport-book { width: 252px; flex: none; }
-.board-row .stamp-slot { padding-right: 104px; }
-.board-row .stamp-mark { width: 94px; height: 42px; }
+
+/* Widest: rival's passport, your route, the route drawn for you, your
+   passport — all on one level. */
+@media (min-width: 1360px) {
+  .boards {
+    grid-template-columns: auto auto auto auto;
+    grid-template-areas: "player-pass player-map rival-map rival-pass";
+  }
+  .boards .passport-book { width: 256px; }
+  .boards .stamp-slot { padding-right: 112px; }
+  .boards .stamp-mark { width: 102px; height: 44px; }
+}
 .board-wrap h2 { font-size: 18px; margin: 0 0 2px; }
 .board-note { margin: 0 0 10px; font-size: 12px; opacity: 0.65; }
 
@@ -361,19 +390,14 @@ body.planning .log-panel,
 body.planning .season-clock,
 body.planning #rival-wrap,
 body.planning .passport-book { display: none; }
+body.planning .boards {
+  grid-template-columns: minmax(0, auto);
+  grid-template-areas: "player-map";
+}
 
 /* The planning map: paper over a greyed-back state flag. */
 .map-flag { display: none; }
 
-/* Below this width the passports drop under their maps and the log,
-   tracker and both maps run in a single column. */
-@media (max-width: 1340px) {
-  .board-row,
-  .player-wrap .board-row { flex-direction: column; align-items: center; }
-  .board-row .passport-book { width: min(100%, 340px); }
-  .board-row .stamp-slot { padding-right: 116px; }
-  .board-row .stamp-mark { width: 104px; height: 46px; }
-}
 @media (max-width: 820px) {
   .field-row { grid-template-columns: minmax(0, 1fr); }
   .controls .buttons.secondary { margin-left: 0; }
@@ -613,10 +637,6 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
   display: flex;
   align-items: center;
   gap: 16px;
-  background: var(--panel);
-  border: 1px solid var(--grid-line);
-  border-radius: 8px;
-  padding: 12px 16px;
 }
 .calendar-body { flex: 1; }
 
