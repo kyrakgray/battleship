@@ -64,6 +64,21 @@ body:not(.planning) .controls {
   justify-content: flex-end;
 }
 body:not(.planning) .season-controls:not(.hidden) { flex: 0 1 auto; }
+
+/* Scouting by voice: the button says whether the microphone is open. */
+#btn-voice-scout.listening {
+  border-color: var(--marker, #2f7d4f);
+  box-shadow: 0 0 0 2px rgba(47, 125, 79, 0.25);
+}
+#btn-voice-scout[disabled] { opacity: 0.55; cursor: not-allowed; }
+.voice-heard {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--trail);
+}
+.voice-heard:empty { display: none; }
+.voice-heard.error { color: var(--dead-end, #a8442a); }
 body:not(.planning) .controls .buttons.secondary { margin-left: 0; }
 body:not(.planning) .controls button { padding: 5px 11px; font-size: 13px; }
 body:not(.planning) .controls .link-btn { margin-top: 0; padding: 0; }
@@ -621,6 +636,12 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
   flex: none;
   width: 76px;
   height: 76px;
+}
+
+.intro-arrowhead {
+  flex: none;
+  width: auto;
+  height: 82px;
 }
 
 /* The title card: the game's name and the two sound settings. */

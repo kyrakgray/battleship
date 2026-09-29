@@ -4,6 +4,7 @@
 
   var B = window.CaliforniaFive;
   var sound = window.CaliforniaFiveAudio;
+  var voice = window.CaliforniaFiveVoice;
 
   var PHASES = { PLACEMENT: 'placement', PLAYER_TURN: 'player-turn', RIVAL_TURN: 'rival-turn', OVER: 'over' };
   var RIVAL_DELAY_MS = 600;
@@ -83,7 +84,10 @@
     btnSoundEffects: document.getElementById('btn-sound-effects'),
     btnVoiceover: document.getElementById('btn-voiceover'),
     soundEffectsLabel: document.getElementById('sound-effects-label'),
-    voiceoverLabel: document.getElementById('voiceover-label')
+    voiceoverLabel: document.getElementById('voiceover-label'),
+    btnVoiceScout: document.getElementById('btn-voice-scout'),
+    voiceScoutLabel: document.getElementById('voice-scout-label'),
+    voiceHeard: document.getElementById('voice-heard')
   };
 
   var playerCells = {};
@@ -727,6 +731,8 @@
     state.revealRival = false;
     window.clearTimeout(flashTimer);
     sound.stopVoice();
+    voice.stop();
+    setVoiceNote('');
     els.winnerFlash.classList.add('hidden');
     els.btnReveal.classList.add('hidden');
     els.gameOver.classList.add('hidden');
@@ -762,6 +768,57 @@
     if (!result.stamped) return;
     sound.effect('stamp');
     sound.say('found-' + (scout === 'player' ? 'you' : 'rival') + '-' + result.parkId);
+  }
+
+  /* ---------- scouting by voice ---------- */
+
+  function setVoiceNote(text, kind) {
+    els.voiceHeard.textContent = text || '';
+    els.voiceHeard.className = 'voice-heard' + (kind ? ' ' + kind : '');
+  }
+
+  function renderVoiceScout() {
+    var on = voice.isListening();
+    els.voiceScoutLabel.textContent = on ? 'Listening' : 'Off';
+    els.btnVoiceScout.setAttribute('aria-pressed', String(on));
+    els.btnVoiceScout.classList.toggle('listening', on);
+  }
+
+  /** A heard square takes the same path as a clicked one. */
+  function scoutBySpeech(square) {
+    if (state.phase !== PHASES.PLAYER_TURN) {
+      setVoiceNote('Hold on — it is not your scouting day yet.', 'error');
+      return;
+    }
+    var label = B.coordLabel(square.row, square.col);
+    if (!B.canScout(state.rivalBoard, square.row, square.col)) {
+      setVoiceNote('You have already scouted ' + label + '.', 'error');
+      return;
+    }
+    setVoiceNote('Heard: scout ' + label + '.', null);
+    handleRivalClick(square.row, square.col);
+  }
+
+  function startVoiceScouting() {
+    voice.start({
+      onSquare: scoutBySpeech,
+      onUnclear: function (heard) {
+        setVoiceNote('Say that again — heard “' + heard + '”. Try “scout A4”.', 'error');
+      },
+      onState: function () { renderVoiceScout(); },
+      onError: function (reason) {
+        setVoiceNote(
+          reason === 'unsupported'
+            ? 'This browser cannot listen — keep clicking squares instead.'
+            : reason === 'not-allowed' || reason === 'service-not-allowed'
+              ? 'The microphone is blocked. Allow it in your browser to scout by voice.'
+              : 'The microphone dropped out. Turn Voice Scouting back on to keep talking.',
+          'error');
+        renderVoiceScout();
+      }
+    });
+    renderVoiceScout();
+    if (voice.isListening()) setVoiceNote('Listening — say “scout A4”.', null);
   }
 
   function renderSoundToggles() {
@@ -873,6 +930,21 @@
     });
     els.btnOverNew.addEventListener('click', newGame);
     els.btnNewGame.addEventListener('click', newGame);
+
+    renderVoiceScout();
+    if (!voice.isSupported()) {
+      els.btnVoiceScout.disabled = true;
+      els.btnVoiceScout.title = 'This browser has no speech recognition.';
+    }
+    els.btnVoiceScout.addEventListener('click', function () {
+      if (voice.isListening()) {
+        voice.stop();
+        renderVoiceScout();
+        setVoiceNote('');
+        return;
+      }
+      startVoiceScouting();
+    });
 
     renderSoundToggles();
     els.btnSoundEffects.addEventListener('click', function () {

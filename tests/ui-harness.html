@@ -108,8 +108,12 @@
         check('intro lists ' + acres, $('intro').textContent.indexOf(acres) !== -1);
       });
 
-    check('intro shows the park badge',
-      $('intro').querySelector('.intro-badge use').getAttribute('href') === '#icon-badge');
+    var arrowhead = $('intro').querySelector('.intro-arrowhead');
+    check('intro shows the arrowhead logo',
+      !!arrowhead && /nps-arrowhead\.png/.test(arrowhead.getAttribute('src')));
+    check('the arrowhead artwork loaded', !!arrowhead && arrowhead.naturalWidth > 0);
+    check('title card still shows the park badge',
+      $('title-window').querySelector('.intro-badge use').getAttribute('href') === '#icon-badge');
     check('intro copy credits the park passport',
       /stamp in your park passport/.test($('intro').textContent) &&
       /before your rival and the Classic is yours/.test($('intro').textContent));
@@ -252,6 +256,78 @@
     check('no park stamped before any scouting day',
       $('status-rival').querySelectorAll('.stamp-mark').length === 0);
 
+    /*
+     * Scouting by voice. A stand-in recogniser stands where the browser's
+     * would, so the run can hear a command without a microphone.
+     */
+    var speech = w.CaliforniaFiveVoice;
+    [
+      ['scout A4', 0, 3],
+      ['a four', 0, 3],
+      ['alpha four', 0, 3],
+      ['okay ranger scout j ten', 9, 9],
+      ['scout B7', 1, 6],
+      ['Scout   c 10 ', 2, 9]
+    ].forEach(function (sample) {
+      var square = speech.parseSquare(sample[0]);
+      check('“' + sample[0] + '” reads as ' + w.CaliforniaFive.coordLabel(sample[1], sample[2]),
+        !!square && square.row === sample[1] && square.col === sample[2],
+        JSON.stringify(square));
+    });
+    ['', 'scout the desert', 'k four', 'a eleven', 'four']
+      .forEach(function (heard) {
+        check('“' + heard + '” is not a square', speech.parseSquare(heard) === null);
+      });
+
+    var mic = null;
+    function FakeRecognition() { mic = this; }
+    FakeRecognition.prototype.start = function () { this.open = true; };
+    FakeRecognition.prototype.stop = function () {
+      this.open = false;
+      if (this.onend) this.onend();
+    };
+    FakeRecognition.prototype.hear = function (text) {
+      this.onresult({ resultIndex: 0, results: [[{ transcript: text }]] });
+    };
+    w.SpeechRecognition = FakeRecognition;
+
+    check('the voice scouting control starts off',
+      $('voice-scout-label').textContent === 'Off' &&
+      $('btn-voice-scout').getAttribute('aria-pressed') === 'false');
+    $('btn-voice-scout').click();
+    check('turning it on opens the microphone',
+      speech.isListening() && $('voice-scout-label').textContent === 'Listening' &&
+      $('btn-voice-scout').getAttribute('aria-pressed') === 'true');
+
+    mic.hear('scout the far side of the pass');
+    check('an unclear command asks for it again and spends no day',
+      /Say that again/.test($('voice-heard').textContent) &&
+      $('days-used').textContent === '0', $('voice-heard').textContent);
+
+    mic.hear('scout A4');
+    var spokenCell = $('rival-board').querySelectorAll('.cell')[3];
+    check('a heard square spends the scouting day it names',
+      $('days-used').textContent === '1' &&
+      (spokenCell.classList.contains('marker') ||
+       spokenCell.classList.contains('dead-end')),
+      spokenCell.className);
+    check('the heard square is read back',
+      /A4/.test($('voice-heard').textContent), $('voice-heard').textContent);
+    check('calendar holds the date until the rival scouts',
+      $('calendar-day').textContent === '4', $('calendar-day').textContent);
+
+    var logAfterVoice = $('log').children.length;
+    mic.hear('scout A4');
+    check('saying a square again spends nothing',
+      $('log').children.length === logAfterVoice &&
+      /already scouted A4|not your scouting day/.test($('voice-heard').textContent),
+      $('voice-heard').textContent);
+
+    mic.onerror({ error: 'not-allowed' });
+    check('a blocked microphone says so and stops listening',
+      !speech.isListening() && /microphone is blocked/.test($('voice-heard').textContent) &&
+      $('voice-scout-label').textContent === 'Off', $('voice-heard').textContent);
+
     var cells = $('rival-board').querySelectorAll('.cell');
     var order = [];
     for (var i = 0; i < cells.length; i++) order.push(cells[i]);
@@ -259,6 +335,7 @@
     var sawMarkerIcon = false;
     var sawDeadEndIcon = false;
     var checkedCalendarTurn = false;
+    var checkedFirstClick = false;
 
     function clickNext() {
       // Spend a day, then let the rival's turn resolve before the next click.
@@ -270,15 +347,14 @@
       var before = Number($('days-used').textContent);
       order[next].click();
       var after = Number($('days-used').textContent);
-      if (before === 0) {
+      if (!checkedFirstClick) {
+        checkedFirstClick = true;
         check('a scouting day advances the season clock', after === before + 1, before + ' -> ' + after);
         check('the square is marked', order[next].classList.contains('marker') ||
           order[next].classList.contains('dead-end'));
         var repeatBefore = $('log').children.length;
         order[next].click();
         check('re-scouting a square does nothing', $('log').children.length === repeatBefore);
-        check('calendar holds the date until the rival scouts',
-          $('calendar-day').textContent === '4', $('calendar-day').textContent);
       }
       if (order[next].classList.contains('dead-end') && !sawDeadEndIcon) {
         sawDeadEndIcon = true;

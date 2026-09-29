@@ -81,6 +81,7 @@ collected, and days left before the pass closes.
 | `game.js` | All rules and state as plain data — board creation, placement validation, random routes, scouting days, stamp and win detection, and rival targeting. No DOM access, so every rule is testable in isolation. |
 | `ui.js` | Rendering and event wiring: builds the grids, tracks the placement cursor, gates input by phase, runs the turn loop with the rival's ~600 ms delay, writes the field notes and banner, and resets state on New Season. It delegates every rule to `game.js`. |
 | `audio.js` | Trail sound: the Sound Effects / Voiceover settings (remembered in `localStorage`), Web Audio–synthesized cues (pencil on the map, a park's trail-marker note, the dead-end thud, the passport stamp), and the ranger's lines. Voice clips are pre-rendered mp3s under `voice/`; if one is missing the browser's own speech synthesis reads the line instead. |
+| `voice.js` | Scouting by voice: turns what the browser's speech recognition hears ("scout A4", "alpha four") into a square and hands it down the same path a click takes. Support is uneven across browsers, so the control disables itself where recognition is missing and clicking always works. |
 | `tests/placement-tests.html` | Placement assertions, 10,000 random routes, and the no-premature-stamp rule. |
 | `tests/simulate-games.html` | 100 complete games through the full turn loop. |
 | `tests/ai-benchmark.html` | 1,000 games per strategy: random roaming vs roam-and-follow. |
