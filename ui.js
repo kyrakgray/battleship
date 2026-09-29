@@ -41,15 +41,20 @@
     howTo: document.getElementById('how-to'),
     btnHowToOpen: document.getElementById('btn-how-to-open'),
     btnHowToClose: document.getElementById('btn-how-to-close'),
+    btnHowToBack: document.getElementById('btn-how-to-back'),
     intro: document.getElementById('intro'),
     btnIntroOpen: document.getElementById('btn-intro-open'),
-    btnIntroClose: document.getElementById('btn-intro-close'),
     btnIntroHowTo: document.getElementById('btn-intro-how-to'),
     daysUsed: document.getElementById('days-used'),
     daysTotal: document.getElementById('days-total'),
     daysLeft: document.getElementById('days-left'),
     clockFill: document.getElementById('clock-fill'),
     rivalDaysUsed: document.getElementById('rival-days-used'),
+    calendarMonth: document.getElementById('calendar-month'),
+    calendarDay: document.getElementById('calendar-day'),
+    calendarWeekday: document.getElementById('calendar-weekday'),
+    calendarNote: document.getElementById('calendar-note'),
+    closingDate: document.getElementById('closing-date'),
     log: document.getElementById('log')
   };
 
@@ -206,10 +211,10 @@
   }
 
   /**
-   * Passports: one stamp slot per park, inked once every square of that park
-   * has been found. The passport under a map belongs to whoever is scouting
-   * that map — your rival scouts the route you drew, so their stamps sit
-   * under your map.
+   * Passports: one page slot per park, cancelled with a dated stamp in the
+   * park's own colour once every square of that park has been found. The
+   * passport under a map belongs to whoever is scouting that map — your rival
+   * scouts the route you drew, so their stamps sit under your map.
    */
   function renderPassports() {
     [
@@ -218,6 +223,7 @@
     ].forEach(function (side) {
       side.list.innerHTML = '';
       B.PARKS.forEach(function (type) {
+        var placed = side.board.parks[type.id];
         var stamped = B.isParkStamped(side.board, type.id);
         var item = document.createElement('li');
         item.className = 'stamp-slot' + (stamped ? ' stamped' : '');
@@ -233,12 +239,7 @@
         detail.textContent = type.length + ' cells · ' + acreage(type);
         item.appendChild(detail);
 
-        if (stamped) {
-          var mark = document.createElement('span');
-          mark.className = 'stamp-mark';
-          mark.textContent = 'STAMPED';
-          item.appendChild(mark);
-        }
+        if (stamped) item.appendChild(cancellationStamp(type, placed.stampedOnDay));
 
         side.list.appendChild(item);
       });
@@ -246,24 +247,90 @@
   }
 
   /**
-   * The season clock: Tioga Pass is open for `SEASON_DAYS` trail days and
-   * every square scouted costs one, so days spent on the map drawn for you
-   * is the season so far.
+   * A cancellation stamp the way the rangers ink them: a ringed rubber mark
+   * carrying the park, the state, and the date the explorer finished it.
+   */
+  function cancellationStamp(type, dayNumber) {
+    var mark = document.createElement('span');
+    mark.className = 'stamp-mark';
+    mark.style.setProperty('--tilt', (type.name.length % 5) - 2.5 + 'deg');
+
+    var top = document.createElement('span');
+    top.className = 'stamp-mark-top';
+    top.textContent = 'National Park Service';
+    mark.appendChild(top);
+
+    var park = document.createElement('span');
+    park.className = 'stamp-mark-park';
+    park.textContent = type.name;
+    mark.appendChild(park);
+
+    var date = document.createElement('span');
+    date.className = 'stamp-mark-date';
+    date.textContent = B.stampDateLabel(dayNumber || 1);
+    mark.appendChild(date);
+
+    var place = document.createElement('span');
+    place.className = 'stamp-mark-place';
+    place.textContent = 'California';
+    mark.appendChild(place);
+
+    return mark;
+  }
+
+  /** Trail days the player has spent, one per square scouted. */
+  function playerDaysSpent() {
+    return B.daysSpent(state.rivalBoard);
+  }
+
+  /** Trail days the rival has spent on the route the player drew. */
+  function rivalDaysSpent() {
+    return B.daysSpent(state.playerBoard);
+  }
+
+  /**
+   * Both explorers scout the same date, so the calendar only turns over once
+   * each of them has taken their day: today is one past the last date they
+   * have both finished.
+   */
+  function currentSeasonDay() {
+    var settled = Math.min(playerDaysSpent(), rivalDaysSpent());
+    return Math.min(B.SEASON_DAYS, settled + 1);
+  }
+
+  /**
+   * The season calendar: Tioga Pass is open for `SEASON_DAYS` trail days from
+   * the fourth of July, and every square scouted costs one.
    */
   function renderSeasonClock() {
-    var used = B.daysSpent(state.rivalBoard);
-    var rivalUsed = B.daysSpent(state.playerBoard);
+    var used = playerDaysSpent();
+    var today = B.seasonDateParts(currentSeasonDay());
+    els.calendarMonth.textContent = today.month;
+    els.calendarDay.textContent = String(today.day);
+    els.calendarWeekday.textContent = today.weekday;
     els.daysUsed.textContent = String(used);
     els.daysTotal.textContent = String(B.SEASON_DAYS);
     els.daysLeft.textContent = String(B.daysLeft(state.rivalBoard));
-    els.rivalDaysUsed.textContent = String(rivalUsed);
+    els.closingDate.textContent = B.stampDateLabel(B.SEASON_DAYS);
+    els.rivalDaysUsed.textContent = String(rivalDaysSpent());
+    els.calendarNote.classList.toggle('waiting',
+      playerDaysSpent() > rivalDaysSpent());
     els.clockFill.style.width = (used / B.SEASON_DAYS * 100) + '%';
   }
 
   function appendLogEntry(entry) {
     var item = document.createElement('li');
     item.className = 'log-entry ' + entry.side;
-    item.textContent = entry.text;
+    if (entry.date) {
+      var date = document.createElement('span');
+      date.className = 'log-date';
+      date.textContent = entry.date;
+      item.appendChild(date);
+    }
+    var text = document.createElement('span');
+    text.className = 'log-text';
+    text.textContent = entry.text;
+    item.appendChild(text);
     els.log.appendChild(item);
   }
 
@@ -283,9 +350,13 @@
     scrollLogToEnd();
   }
 
-  function addLog(side, text) {
+  function addLog(side, text, dayNumber) {
     var pinned = logIsPinnedToEnd();
-    var entry = { side: side, text: text };
+    var entry = {
+      side: side,
+      text: text,
+      date: dayNumber ? B.stampDateLabel(dayNumber).slice(0, 6) : ''
+    };
     state.log.push(entry);
     appendLogEntry(entry);
     if (pinned) scrollLogToEnd();
@@ -418,7 +489,7 @@
     els.intro.classList.add('hidden');
     els.btnReveal.classList.add('hidden');
     addLog('system', 'Routes sealed and traded. Tioga Pass is open for ' +
-      B.SEASON_DAYS + ' trail days. You take the first scouting day.');
+      B.SEASON_DAYS + ' trail days. You take the first scouting day.', 1);
     setPhase(PHASES.PLAYER_TURN);
     setMessage('Your scouting day. Pick a square on the route drawn for you.', 'info');
     render();
@@ -431,7 +502,7 @@
     var text = winner === 'player'
       ? 'The California Five! All five parks stamped in ' + days + ' trail days.'
       : 'Your rival finished their itinerary first, in ' + days + ' trail days.';
-    addLog('system', text);
+    addLog('system', text, days);
     setMessage(text, (winner === 'player' ? 'info' : 'error') + ' result');
     els.btnReveal.classList.toggle('hidden', winner === 'player');
     els.btnReveal.textContent = 'Reveal the Route You Missed';
@@ -443,7 +514,7 @@
     if (!B.canScout(state.rivalBoard, row, col)) return;
 
     var result = B.scout(state.rivalBoard, row, col);
-    addLog('player', describeDay('player', row, col, result));
+    addLog('player', describeDay('player', row, col, result), playerDaysSpent());
     setMessage(
       result.result === B.DAY.TRAIL_MARKER
         ? "Trail marker. You're on the route — " + result.parkName + '.' +
@@ -473,7 +544,8 @@
     }
 
     var result = B.scout(state.playerBoard, target.row, target.col);
-    addLog('rival', describeDay('rival', target.row, target.col, result));
+    addLog('rival', describeDay('rival', target.row, target.col, result),
+      rivalDaysSpent());
     renderPlayerBoard();
     renderPassports();
     renderSeasonClock();
@@ -514,8 +586,13 @@
   /* ---------- wiring ---------- */
 
   function openHowTo() {
+    els.intro.classList.add('hidden');
     els.howTo.classList.remove('hidden');
-    els.howTo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function openStory() {
+    els.howTo.classList.add('hidden');
+    els.intro.classList.remove('hidden');
   }
 
   function init() {
@@ -590,24 +667,19 @@
       renderRivalBoard();
     });
 
+    // The story window leads into how to play, and that window is the one
+    // that drops you into the Classic. Both stay reachable mid-season.
     els.btnHowToClose.addEventListener('click', function () {
       els.howTo.classList.add('hidden');
     });
 
+    els.btnHowToBack.addEventListener('click', openStory);
+
     els.btnHowToOpen.addEventListener('click', openHowTo);
 
-    els.btnIntroClose.addEventListener('click', function () {
-      els.intro.classList.add('hidden');
-    });
+    els.btnIntroHowTo.addEventListener('click', openHowTo);
 
-    els.btnIntroHowTo.addEventListener('click', function () {
-      els.intro.classList.add('hidden');
-      openHowTo();
-    });
-
-    els.btnIntroOpen.addEventListener('click', function () {
-      els.intro.classList.remove('hidden');
-    });
+    els.btnIntroOpen.addEventListener('click', openStory);
 
     els.btnStart.addEventListener('click', startGame);
     els.btnNewGame.addEventListener('click', newGame);

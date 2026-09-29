@@ -240,6 +240,40 @@
    */
   var SEASON_DAYS = BOARD_SIZE * BOARD_SIZE;
 
+  /** Trail day 1 is the fourth of July, the morning the pass opened. */
+  var SEASON_START = { year: 2026, month: 6, day: 4 };
+  var MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  var WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday'];
+
+  /** The calendar date of a trail day, counting from the fourth of July. */
+  function seasonDate(dayNumber) {
+    var day = Math.max(1, Math.min(SEASON_DAYS, dayNumber));
+    return new Date(Date.UTC(
+      SEASON_START.year, SEASON_START.month, SEASON_START.day + day - 1
+    ));
+  }
+
+  /** Calendar fields for a trail day, ready to drop into the page. */
+  function seasonDateParts(dayNumber) {
+    var date = seasonDate(dayNumber);
+    var dayOfMonth = date.getUTCDate();
+    return {
+      weekday: WEEKDAY_NAMES[date.getUTCDay()],
+      month: MONTH_NAMES[date.getUTCMonth()],
+      day: dayOfMonth,
+      paddedDay: (dayOfMonth < 10 ? '0' : '') + dayOfMonth,
+      year: date.getUTCFullYear()
+    };
+  }
+
+  /** Date line inked into a cancellation stamp, e.g. "JUL 09 2026". */
+  function stampDateLabel(dayNumber) {
+    var parts = seasonDateParts(dayNumber);
+    return parts.month + ' ' + parts.paddedDay + ' ' + parts.year;
+  }
+
   /** True when the square is on the board and has not been scouted yet. */
   function canScout(board, row, col) {
     return inBounds(row, col) && board.days[row][col] === null;
@@ -291,12 +325,18 @@
 
     board.days[row][col] = DAY.TRAIL_MARKER;
     board.parks[parkId].found += 1;
+    var stamped = isParkStamped(board, parkId);
+    // The day a park is completed is the date inked into the passport stamp.
+    if (stamped && !board.parks[parkId].stampedOnDay) {
+      board.parks[parkId].stampedOnDay = daysSpent(board);
+    }
     return {
       legal: true,
       result: DAY.TRAIL_MARKER,
       parkId: parkId,
       parkName: getPark(parkId).name,
-      stamped: isParkStamped(board, parkId),
+      stamped: stamped,
+      stampedOnDay: board.parks[parkId].stampedOnDay || null,
       routeComplete: isRouteComplete(board)
     };
   }
@@ -570,6 +610,10 @@
     placeRouteRandomly: placeRouteRandomly,
     DAY: DAY,
     SEASON_DAYS: SEASON_DAYS,
+    SEASON_START: SEASON_START,
+    seasonDate: seasonDate,
+    seasonDateParts: seasonDateParts,
+    stampDateLabel: stampDateLabel,
     canScout: canScout,
     daysSpent: daysSpent,
     daysLeft: daysLeft,

@@ -59,8 +59,27 @@
     });
     check('sprite defines the dead-end icon', !!d.getElementById('icon-dead-end'));
 
-    $('btn-intro-close').click();
-    check('intro closes on "Enter the Classic"', $('intro').classList.contains('hidden'));
+    check('story window leads with How to Play',
+      /How to Play/.test($('btn-intro-how-to').textContent));
+    $('btn-intro-how-to').click();
+    check('story hands off to the how-to window',
+      $('intro').classList.contains('hidden') &&
+      !$('how-to').classList.contains('hidden'));
+    check('how-to window enters the Classic',
+      $('btn-how-to-close').textContent === 'Enter the Classic');
+    check('how-to window can step back to the story',
+      !!$('btn-how-to-back'));
+    $('btn-how-to-close').click();
+    check('how-to closes on "Enter the Classic"',
+      $('how-to').classList.contains('hidden') && $('intro').classList.contains('hidden'));
+
+    $('btn-intro-open').click();
+    check('the story reopens during the Classic',
+      !$('intro').classList.contains('hidden'));
+    $('btn-how-to-open').click();
+    check('how to play reopens during the Classic',
+      !$('how-to').classList.contains('hidden') && $('intro').classList.contains('hidden'));
+    $('btn-how-to-close').click();
 
     check('five park cards rendered', $('park-list').children.length === 5);
     check('park cards show acreage',
@@ -69,6 +88,12 @@
     check('season clock starts at zero of 100',
       $('days-used').textContent === '0' && $('days-total').textContent === '100' &&
       $('days-left').textContent === '100');
+    check('calendar opens on July 4, 2026',
+      $('calendar-month').textContent === 'JUL' && $('calendar-day').textContent === '4' &&
+      $('calendar-weekday').textContent === 'Saturday' &&
+      /OCT 11 2026/.test($('closing-date').textContent));
+    check('field notes read as an explorer\'s log',
+      /Explorer's Log/.test(d.querySelector('.log-panel').textContent));
 
     $('btn-random').click();
     check('random route enables seal & trade', !$('btn-start').disabled);
@@ -81,7 +106,7 @@
     check('passport shows acreage',
       $('status-rival').textContent.indexOf('404,063 acres') !== -1);
     check('no park stamped before any scouting day',
-      $('status-rival').textContent.indexOf('STAMPED') === -1);
+      $('status-rival').querySelectorAll('.stamp-mark').length === 0);
 
     var cells = $('rival-board').querySelectorAll('.cell');
     var order = [];
@@ -89,6 +114,7 @@
     var next = 0;
     var sawMarkerIcon = false;
     var sawDeadEndIcon = false;
+    var checkedCalendarTurn = false;
 
     function clickNext() {
       // Spend a day, then let the rival's turn resolve before the next click.
@@ -107,6 +133,8 @@
         var repeatBefore = $('log').children.length;
         order[next].click();
         check('re-scouting a square does nothing', $('log').children.length === repeatBefore);
+        check('calendar holds the date until the rival scouts',
+          $('calendar-day').textContent === '4', $('calendar-day').textContent);
       }
       if (order[next].classList.contains('dead-end') && !sawDeadEndIcon) {
         sawDeadEndIcon = true;
@@ -128,6 +156,12 @@
       if ($('phase-label').textContent.indexOf('rival is out scouting') !== -1) {
         return w.setTimeout(step, 80);
       }
+      if (!checkedCalendarTurn && Number($('days-used').textContent) === 1) {
+        checkedCalendarTurn = true;
+        check('calendar turns over once both explorers have scouted',
+          $('calendar-day').textContent === '5' && $('calendar-month').textContent === 'JUL',
+          $('calendar-month').textContent + ' ' + $('calendar-day').textContent);
+      }
       clickNext();
     }
 
@@ -140,8 +174,15 @@
       check('result is shown in the large result style',
         $('message').className.indexOf('result') !== -1);
       var stampedSide = /California Five/.test(msg) ? 'status-rival' : 'status-player';
-      check('winning passport holds five stamps',
-        ($(stampedSide).textContent.match(/STAMPED/g) || []).length === 5);
+      var stamps = $(stampedSide).querySelectorAll('.stamp-mark');
+      check('winning passport holds five cancellation stamps', stamps.length === 5);
+      check('each stamp carries its park and the date it was completed',
+        Array.prototype.every.call(stamps, function (stamp) {
+          return /^[A-Z]{3} \d{2} \d{4}$/.test(
+            stamp.querySelector('.stamp-mark-date').textContent) &&
+            stamp.querySelector('.stamp-mark-park').textContent.length > 0;
+        }),
+        stamps.length ? stamps[0].textContent : '');
       check('reveal button only after a loss',
         $('btn-reveal').classList.contains('hidden') === /California Five/.test(msg));
       check('both square icons were drawn during the season',
@@ -159,8 +200,9 @@
       check('new season clears both maps',
         d.querySelectorAll('.cell.marker, .cell.dead-end').length === 0);
       check('new season clears the passports',
-        $('status-player').textContent.indexOf('STAMPED') === -1 &&
-        $('status-rival').textContent.indexOf('STAMPED') === -1);
+        d.querySelectorAll('.stamp-mark').length === 0);
+      check('new season turns the calendar back to July 4',
+        $('calendar-month').textContent === 'JUL' && $('calendar-day').textContent === '4');
       check('new season re-gates seal & trade', $('btn-start').disabled);
       check('no uncaught page errors', errors.length === 0, errors.join(' | '));
       finish();
