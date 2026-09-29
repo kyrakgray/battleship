@@ -47,6 +47,9 @@
       cues.push(detail ? name + ':' + detail : name);
     };
     audio.say = function (key) { spoken.push(key); };
+    audio.sayResult = function (won, days) {
+      spoken.push((won ? 'result-win' : 'result-loss') + ':' + days);
+    };
 
     check('page title is the theme title', d.title === 'The California Five', d.title);
     check('the title window opens ahead of the story',
@@ -95,11 +98,31 @@
     check('the ranger calls a last park left for each explorer',
       /one park left/.test(voiceLines['last-park-you'] || '') &&
       /one more park left/.test(voiceLines['last-park-rival'] || ''));
-    check('the ranger reads the season card and asks for another summer',
-      /season card/.test(voiceLines['result-win'] || '') &&
-      /next summer/.test(voiceLines['result-win'] || '') &&
-      /season card/.test(voiceLines['result-loss'] || '') &&
-      /another summer/.test(voiceLines['result-loss'] || ''));
+    check('the ranger reads the result around the day count',
+      /^You won! You found all the California Five parks before your rival in$/
+        .test(voiceLines['result-win'] || '') &&
+      /^Your rival won\. They found all the California Five parks first in$/
+        .test(voiceLines['result-loss'] || ''),
+      voiceLines['result-win'] + ' / ' + voiceLines['result-loss']);
+    check('the read-out offers a review of the race or a new season',
+      /^days\. Now you may review your winning race, or play a new season/
+        .test(voiceLines['result-win-end'] || '') &&
+      /^days\. Now, you may review this race to see where you went wrong, or play/
+        .test(voiceLines['result-loss-end'] || ''),
+      voiceLines['result-win-end'] + ' / ' + voiceLines['result-loss-end']);
+    function served(path) {
+      var request = new w.XMLHttpRequest();
+      request.open('HEAD', path, false);
+      try { request.send(); } catch (error) { return false; }
+      return request.status === 200;
+    }
+    check('the recorded pencil and the read-out clips are on hand',
+      served('/sfx/pencil.mp3') && served('/voice/result-win.mp3') &&
+      served('/voice/result-loss-end.mp3') && served('/voice/count-17.mp3') &&
+      served('/voice/count-100.mp3'));
+    check('every day a season can end on can be read aloud',
+      voiceLines['count-17'] === '17' && voiceLines['count-61'] === '61' &&
+      voiceLines['count-100'] === '100');
     ['death-valley', 'joshua-tree', 'yosemite', 'kings-canyon', 'sequoia']
       .forEach(function (id) {
         check('the ranger has a line for both explorers finding ' + id,
@@ -292,6 +315,20 @@
       'voice ' + Math.round(narrowVoice.top) + '-' + Math.round(narrowVoice.bottom) +
         ', tracker ends ' + Math.round(narrowTracker.bottom) +
         ', rival map at ' + Math.round(narrowRival.top));
+    var narrowBoard = $('rival-board').getBoundingClientRect();
+    function centre(box) { return box.left + box.width / 2; }
+    var narrowButton = $('btn-voice-scout').getBoundingClientRect();
+    check('single file centres voice scouting over the board below it',
+      Math.abs(centre(narrowButton) - centre(narrowBoard)) < 3,
+      Math.round(centre(narrowButton)) + ' vs ' + Math.round(centre(narrowBoard)));
+    var barCentre = centre($('btn-new-game').closest('.controls')
+      .getBoundingClientRect());
+    check('single file centres New Season over the two window links',
+      Math.abs(centre($('btn-new-game').getBoundingClientRect()) - barCentre) < 3 &&
+      Math.abs(centre($('btn-intro-open').parentNode.getBoundingClientRect()) -
+        barCentre) < 3,
+      Math.round(centre($('btn-new-game').getBoundingClientRect())) + ' vs ' +
+        Math.round(barCentre));
     frame.width = '1200';
 
     check('rival map is live after sealing',
@@ -521,9 +558,14 @@
       check('the last park left is called out',
         spoken.indexOf('last-park-you') !== -1 ||
         spoken.indexOf('last-park-rival') !== -1, spoken.join(','));
-      check('the ranger reads the result over the season card',
-        spoken.indexOf('result-win') !== -1 || spoken.indexOf('result-loss') !== -1,
-        spoken.join(','));
+      var readOut = spoken.filter(function (key) {
+        return /^result-(win|loss):/.test(key);
+      })[0];
+      var daysRow = $('game-over-stats').children[0];
+      var winnerDays = daysRow.children[/California Five/.test(msg) ? 1 : 2].textContent;
+      check('the ranger reads the result with the winner\'s day count',
+        readOut === (/California Five/.test(msg) ? 'result-win' : 'result-loss') +
+          ':' + winnerDays, readOut + ' vs ' + winnerDays);
       check('a stamped park is called by name',
         spoken.some(function (key) { return /^found-(you|rival)-/.test(key); }),
         spoken.join(','));

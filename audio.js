@@ -1,10 +1,14 @@
 /**
  * Trail sound: synthesized effects and the ranger's recorded lines.
  *
- * Effects are generated with the Web Audio API so the page carries no
- * sample files. Voice lines are pre-rendered mp3s under voice/; if one is
- * missing the browser's own speech synthesis reads the line instead, so
- * the game is never silent where it promised a voice.
+ * Effects are generated with the Web Audio API, apart from the pencil,
+ * which is a recording. Voice lines are pre-rendered mp3s under voice/;
+ * if one is missing the browser's own speech synthesis reads the line
+ * instead, so the game is never silent where it promised a voice.
+ *
+ * The result the ranger reads out carries the day count, which is only
+ * known once the season ends, so it is spoken in three clips: the line up
+ * to the number, the number itself, and the rest.
  */
 (function () {
   'use strict';
@@ -25,13 +29,18 @@
       'your rival and win the race!',
     'last-park-rival': 'Your rival has one more park left to find. Now you must ' +
       'choose carefully to win the race.',
-    'result-win': 'You took the Classic — all five stamps are in your passport. ' +
-      "Here is your season card. Care to run it again next summer? Don't let it " +
-      'go to your head, champ. Even a blind marmot finds a trail marker now and then.',
-    'result-loss': 'Your rival collected the California Five first. Here is your ' +
-      'season card. Want another summer? Look at it this way — nobody out here ' +
-      'walks that many forest roads by accident. That takes real talent.'
+    'result-win': 'You won! You found all the California Five parks before your ' +
+      'rival in',
+    'result-win-end': 'days. Now you may review your winning race, or play a new ' +
+      'season at a chance to beat your rival again.',
+    'result-loss': 'Your rival won. They found all the California Five parks ' +
+      'first in',
+    'result-loss-end': 'days. Now, you may review this race to see where you went ' +
+      'wrong, or play a new season for a chance to beat your rival.'
   };
+  // Every day count a season can end on: seventeen squares is the fewest that
+  // can hold all five parks, and the season closes at a hundred.
+  for (var day = 17; day <= 100; day++) LINES['count-' + day] = String(day);
   ['death-valley', 'joshua-tree', 'yosemite', 'kings-canyon', 'sequoia']
     .forEach(function (id) {
       var name = id.split('-').map(function (word) {
@@ -152,9 +161,21 @@
     });
   }
 
+  var pencil = null;
+
   var EFFECTS = {
-    /** A pencil laying a park down on the paper map, stroke by stroke. */
+    /** A pencil laying a park down on the paper map: a recorded stroke. */
     draw: function () {
+      if (!pencil) {
+        pencil = new window.Audio('sfx/pencil.mp3');
+        pencil.preload = 'auto';
+      }
+      pencil.currentTime = 0;
+      var playback = pencil.play();
+      if (playback && playback.catch) playback.catch(EFFECTS.drawSynth);
+    },
+    /** Graphite on paper, drawn by hand where the recording cannot play. */
+    drawSynth: function () {
       [
         { delay: 0.00, length: 0.13, frequency: 1500 },
         { delay: 0.12, length: 0.09, frequency: 1150 },
@@ -208,14 +229,43 @@
   }
 
   /** Last resort when a clip is missing: the browser's own ranger. */
-  function speak(key) {
+  function speak(keys) {
     var synth = window.speechSynthesis;
-    if (!synth || !LINES[key]) return;
-    var utterance = new window.SpeechSynthesisUtterance(LINES[key]);
+    var text = keys.map(function (key) { return LINES[key] || ''; }).join(' ');
+    if (!synth || !text.trim()) return;
+    var utterance = new window.SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 0.7;
     synth.cancel();
     synth.speak(utterance);
+  }
+
+  /** Plays clips back to back; one missing recording spoils the whole run. */
+  function playClips(keys) {
+    var known = keys.filter(function (key) { return !!LINES[key]; });
+    if (!known.length) return;
+    var at = 0;
+    function next() {
+      if (at >= known.length) {
+        voiceNow = null;
+        return;
+      }
+      var clip = clipFor(known[at++]);
+      voiceNow = clip;
+      clip.currentTime = 0;
+      clip.addEventListener('ended', function once() {
+        clip.removeEventListener('ended', once);
+        if (voiceNow === clip) next();
+      });
+      var playback = clip.play();
+      if (playback && playback.catch) {
+        playback.catch(function () {
+          voiceNow = null;
+          speak(known);
+        });
+      }
+    }
+    next();
   }
 
   var api = {
@@ -276,15 +326,18 @@
     say: function (key) {
       if (!prefs.voice || !LINES[key]) return;
       api.stopVoice();
-      var clip = clipFor(key);
-      voiceNow = clip;
-      var playback = clip.play();
-      if (playback && playback.catch) {
-        playback.catch(function () {
-          voiceNow = null;
-          speak(key);
-        });
-      }
+      playClips([key]);
+    },
+
+    /**
+     * The season read out: the winner, the day count, and the invitation
+     * to review the race or run another season.
+     */
+    sayResult: function (wonByPlayer, days) {
+      if (!prefs.voice) return;
+      var line = wonByPlayer ? 'result-win' : 'result-loss';
+      api.stopVoice();
+      playClips([line, 'count-' + days, line + '-end']);
     }
   };
 

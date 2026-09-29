@@ -632,7 +632,7 @@
     });
 
     els.gameOver.classList.remove('hidden');
-    sound.say(wonByPlayer ? 'result-win' : 'result-loss');
+    sound.sayResult(wonByPlayer, wonByPlayer ? you.days : rival.days);
   }
 
   /** The result called over the maps, held there before the season card. */
