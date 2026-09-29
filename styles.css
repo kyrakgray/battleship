@@ -499,9 +499,9 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
 .wax-text {
   fill: #f7e0d0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   text-anchor: middle;
   text-transform: uppercase;
 }
