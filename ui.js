@@ -632,7 +632,12 @@
     });
 
     els.gameOver.classList.remove('hidden');
-    sound.sayResult(wonByPlayer, wonByPlayer ? you.days : rival.days);
+    sound.sayResult(wonByPlayer, winnerDays(winner));
+  }
+
+  /** Trail days the winning explorer took to finish their itinerary. */
+  function winnerDays(winner) {
+    return winner === 'player' ? playerDaysSpent() : rivalDaysSpent();
   }
 
   /** The result called over the maps, held there before the season card. */
@@ -641,6 +646,7 @@
     els.winnerFlash.textContent = wonByPlayer ? 'You won!' : 'Your rival won';
     els.winnerFlash.classList.toggle('lost', !wonByPlayer);
     els.winnerFlash.classList.remove('hidden');
+    sound.prepareResult(wonByPlayer, winnerDays(winner));
     window.clearTimeout(flashTimer);
     flashTimer = window.setTimeout(function () {
       els.winnerFlash.classList.add('hidden');

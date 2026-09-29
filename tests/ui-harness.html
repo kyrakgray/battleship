@@ -50,6 +50,10 @@
     audio.sayResult = function (won, days) {
       spoken.push((won ? 'result-win' : 'result-loss') + ':' + days);
     };
+    var prepared = [];
+    audio.prepareResult = function (won, days) {
+      prepared.push((won ? 'result-win' : 'result-loss') + ':' + days);
+    };
 
     check('page title is the theme title', d.title === 'The California Five', d.title);
     check('the title window opens ahead of the story',
@@ -116,6 +120,15 @@
       try { request.send(); } catch (error) { return false; }
       return request.status === 200;
     }
+    function weight(path) {
+      var request = new w.XMLHttpRequest();
+      request.open('HEAD', path, false);
+      try { request.send(); } catch (error) { return 0; }
+      return Number(request.getResponseHeader('Content-Length') || 0);
+    }
+    check('the pencil stroke is a short one',
+      weight('/sfx/pencil.mp3') > 0 && weight('/sfx/pencil.mp3') < 16000,
+      weight('/sfx/pencil.mp3') + ' bytes');
     check('the recorded pencil and the read-out clips are on hand',
       served('/sfx/pencil.mp3') && served('/voice/result-win.mp3') &&
       served('/voice/result-loss-end.mp3') && served('/voice/count-17.mp3') &&
@@ -148,8 +161,11 @@
     check('intro shows the arrowhead logo',
       !!arrowhead && /nps-arrowhead\.png/.test(arrowhead.getAttribute('src')));
     check('the arrowhead artwork loaded', !!arrowhead && arrowhead.naturalWidth > 0);
-    check('title card still shows the park badge',
-      $('title-window').querySelector('.intro-badge use').getAttribute('href') === '#icon-badge');
+    var titleFlag = $('title-window').querySelector('.title-flag');
+    check('title card flies the state flag',
+      !!titleFlag && titleFlag.naturalWidth > 0 &&
+      !$('title-window').querySelector('.intro-badge'),
+      titleFlag && titleFlag.getAttribute('src'));
     check('intro copy credits the park passport',
       /stamp in your park passport/.test($('intro').textContent) &&
       /before your rival and the Classic is yours/.test($('intro').textContent));
@@ -166,6 +182,16 @@
     check('story hands off to the how-to window',
       $('intro').classList.contains('hidden') &&
       !$('how-to').classList.contains('hidden'));
+    var ranger = $('how-to').querySelector('.ranger-portrait');
+    check('the briefing window is headed by the ranger',
+      !!ranger && ranger.naturalWidth > 0 &&
+      !$('how-to').querySelector('.intro-badge'),
+      ranger && ranger.getAttribute('src'));
+    var steps = $('how-to').querySelectorAll('ol > li');
+    check('voice scouting is a briefing step of its own',
+      steps.length === 6 && /Scout by voice/.test(steps[4].textContent) &&
+      /Collect the California Five/.test(steps[5].textContent),
+      steps.length + ' steps');
     check('the briefing is spoken over the how-to window',
       spoken.indexOf('briefing') !== -1, spoken.join(','));
     check('how-to window enters the Classic',
@@ -563,6 +589,8 @@
       })[0];
       var daysRow = $('game-over-stats').children[0];
       var winnerDays = daysRow.children[/California Five/.test(msg) ? 1 : 2].textContent;
+      check('the read-out is built while the result is still being called',
+        prepared.length > 0 && prepared[0] === readOut, prepared.join(','));
       check('the ranger reads the result with the winner\'s day count',
         readOut === (/California Five/.test(msg) ? 'result-win' : 'result-loss') +
           ':' + winnerDays, readOut + ' vs ' + winnerDays);

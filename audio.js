@@ -167,7 +167,7 @@
     /** A pencil laying a park down on the paper map: a recorded stroke. */
     draw: function () {
       if (!pencil) {
-        pencil = new window.Audio('sfx/pencil.mp3');
+        pencil = new window.Audio('sfx/pencil.mp3?v=27');
         pencil.preload = 'auto';
       }
       pencil.currentTime = 0;
@@ -216,8 +216,33 @@
   };
 
   var clips = {};
+  var readOuts = {};
+  var readOutRun = 0;
   var voiceNow = null;
   var queued = null;
+
+  /**
+   * Stitches the parts of a read-out into one clip. Playing them one after
+   * another leaves a seam where the next recording is still loading, so the
+   * parts are fetched up front and joined into a single stream.
+   */
+  function joinClips(keys) {
+    var id = keys.join('|');
+    if (!readOuts[id]) {
+      if (!window.fetch || !window.Blob || !window.URL) return null;
+      readOuts[id] = window.Promise.all(keys.map(function (key) {
+        return window.fetch(VOICE_DIR + key + '.mp3').then(function (response) {
+          if (!response.ok) throw new Error(key);
+          return response.blob();
+        });
+      })).then(function (parts) {
+        return window.URL.createObjectURL(
+          new window.Blob(parts, { type: 'audio/mpeg' }));
+      });
+      readOuts[id]['catch'](function () { delete readOuts[id]; });
+    }
+    return readOuts[id];
+  }
 
   function clipFor(key) {
     if (!clips[key]) {
@@ -268,6 +293,39 @@
     next();
   }
 
+  /** Reads a stitched run of clips, dropping back to one clip at a time. */
+  function playRun(keys) {
+    var joined = joinClips(keys);
+    if (!joined) {
+      playClips(keys);
+      return;
+    }
+    var run = ++readOutRun;
+    joined.then(function (src) {
+      if (run !== readOutRun) return;
+      var clip = new window.Audio(src);
+      voiceNow = clip;
+      clip.addEventListener('ended', function () {
+        if (voiceNow === clip) voiceNow = null;
+      });
+      var playback = clip.play();
+      if (playback && playback['catch']) {
+        playback['catch'](function () {
+          voiceNow = null;
+          speak(keys);
+        });
+      }
+    })['catch'](function () {
+      if (run === readOutRun) playClips(keys);
+    });
+  }
+
+  /** The parts of the season read-out, in the order the ranger says them. */
+  function resultKeys(wonByPlayer, days) {
+    var line = wonByPlayer ? 'result-win' : 'result-loss';
+    return [line, 'count-' + days, line + '-end'];
+  }
+
   var api = {
     LINES: LINES,
 
@@ -298,6 +356,7 @@
 
     stopVoice: function () {
       queued = null;
+      readOutRun++;
       if (voiceNow) {
         voiceNow.pause();
         voiceNow.currentTime = 0;
@@ -335,9 +394,14 @@
      */
     sayResult: function (wonByPlayer, days) {
       if (!prefs.voice) return;
-      var line = wonByPlayer ? 'result-win' : 'result-loss';
       api.stopVoice();
-      playClips([line, 'count-' + days, line + '-end']);
+      playRun(resultKeys(wonByPlayer, days));
+    },
+
+    /** Builds the read-out while the result is still being called. */
+    prepareResult: function (wonByPlayer, days) {
+      if (!prefs.voice) return;
+      joinClips(resultKeys(wonByPlayer, days));
     }
   };
 

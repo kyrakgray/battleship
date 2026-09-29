@@ -689,6 +689,15 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
   height: 76px;
 }
 
+/* The ranger who gives the briefing, standing in the window's top corner. */
+.ranger-portrait {
+  flex: none;
+  width: 68px;
+  height: auto;
+  align-self: flex-start;
+  margin: -6px 0 -12px;
+}
+
 .intro-arrowhead {
   flex: none;
   width: auto;
@@ -701,7 +710,15 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
   text-align: center;
   padding: 32px 28px 24px;
 }
-.title-card .intro-badge { width: 96px; height: 96px; }
+.title-flag {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
 .title-card h2 { margin: 12px 0 4px; font-size: 30px; }
 .title-card .intro-kicker { margin-bottom: 22px; }
 .title-card .modal-actions { justify-content: center; }
