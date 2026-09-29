@@ -104,16 +104,16 @@
     check('the ranger calls a last park left for each explorer',
       /one park left/.test(voiceLines['last-park-you'] || '') &&
       /one more park left/.test(voiceLines['last-park-rival'] || ''));
-    check('the ranger reads the result around the day count',
-      /^Well, look at that\. You stamped all five of the California Five in$/
-        .test(voiceLines['result-win'] || '') &&
-      /^Your rival got there first\. All five parks in$/
-        .test(voiceLines['result-loss'] || ''),
-      voiceLines['result-win'] + ' / ' + voiceLines['result-loss']);
+    check('the ranger speaks the day count inside the sentence',
+      /^Well, look at that\. You stamped all five of the California Five in 42 days\.\.\.$/
+        .test(voiceLines['result-win-42'] || '') &&
+      /^Your rival got there first\. All five parks in 58 days,$/
+        .test(voiceLines['result-loss-58'] || ''),
+      voiceLines['result-win-42'] + ' / ' + voiceLines['result-loss-58']);
     check('the read-out offers a review of the race or a new season',
-      /^days\.\.\. beat your rival fair and square\. Take a minute to review your/
+      /^Beat your rival fair and square\. Take a minute to review your/
         .test(voiceLines['result-win-end'] || '') &&
-      /^days, while you were still squinting at a map\. Go on and review the race/
+      /^While you were still squinting at a map\. Go on and review the race/
         .test(voiceLines['result-loss-end'] || ''),
       voiceLines['result-win-end'] + ' / ' + voiceLines['result-loss-end']);
     function served(path) {
@@ -132,12 +132,13 @@
       weight('/sfx/pencil.mp3') > 0 && weight('/sfx/pencil.mp3') < 16000,
       weight('/sfx/pencil.mp3') + ' bytes');
     check('the recorded pencil and the read-out clips are on hand',
-      served('/sfx/pencil.mp3') && served('/voice/result-win.mp3') &&
-      served('/voice/result-loss-end.mp3') && served('/voice/count-17.mp3') &&
-      served('/voice/count-100.mp3'));
+      served('/sfx/pencil.mp3') && served('/voice/result-win-17.mp3') &&
+      served('/voice/result-loss-end.mp3') && served('/voice/result-win-100.mp3') &&
+      served('/voice/result-loss-17.mp3') && served('/voice/result-loss-100.mp3'));
     check('every day a season can end on can be read aloud',
-      voiceLines['count-17'] === '17' && voiceLines['count-61'] === '61' &&
-      voiceLines['count-100'] === '100');
+      / 17 days/.test(voiceLines['result-win-17'] || '') &&
+      / 61 days/.test(voiceLines['result-loss-61'] || '') &&
+      / 100 days/.test(voiceLines['result-win-100'] || ''));
     ['death-valley', 'joshua-tree', 'yosemite', 'kings-canyon', 'sequoia']
       .forEach(function (id) {
         check('the ranger has a line for both explorers finding ' + id,

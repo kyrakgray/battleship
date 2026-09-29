@@ -15,7 +15,7 @@
 
   var STORE_KEY = 'california-five-sound';
   var VOICE_DIR = 'voice/';
-  var VOICE_VERSION = '?v=30';
+  var VOICE_VERSION = '?v=31';
 
   /** Every line the ranger speaks, keyed by the moment it belongs to. */
   var LINES = {
@@ -30,19 +30,22 @@
       'your rival and win the race!',
     'last-park-rival': 'Your rival has one more park left to find. Now you must ' +
       'choose carefully to win the race.',
-    'result-win': 'Well, look at that. You stamped all five of the California ' +
-      'Five in',
-    'result-win-end': "days... beat your rival fair and square. Take a minute " +
+    'result-win-end': "Beat your rival fair and square. Take a minute " +
       "to review your winning race, or head out on a new season and make 'em " +
       'suffer again.',
-    'result-loss': 'Your rival got there first. All five parks in',
-    'result-loss-end': 'days, while you were still squinting at a map. Go on ' +
+    'result-loss-end': 'While you were still squinting at a map. Go on ' +
       'and review the race to see where you went wrong, or start a new season ' +
       'and get even.'
   };
-  // Every day count a season can end on: seventeen squares is the fewest that
-  // can hold all five parks, and the season closes at a hundred.
-  for (var day = 17; day <= 100; day++) LINES['count-' + day] = String(day);
+  // The opening of the read-out is recorded once per day count, with the
+  // number spoken in the sentence: seventeen squares is the fewest that can
+  // hold all five parks, and the season closes at a hundred.
+  for (var day = 17; day <= 100; day++) {
+    LINES['result-win-' + day] = 'Well, look at that. You stamped all five ' +
+      'of the California Five in ' + day + ' days...';
+    LINES['result-loss-' + day] = 'Your rival got there first. All five ' +
+      'parks in ' + day + ' days,';
+  }
   ['death-valley', 'joshua-tree', 'yosemite', 'kings-canyon', 'sequoia']
     .forEach(function (id) {
       var name = id.split('-').map(function (word) {
@@ -169,7 +172,7 @@
     /** A pencil laying a park down on the paper map: a recorded stroke. */
     draw: function () {
       if (!pencil) {
-        pencil = new window.Audio('sfx/pencil.mp3?v=30');
+        pencil = new window.Audio('sfx/pencil.mp3?v=31');
         pencil.preload = 'auto';
       }
       pencil.currentTime = 0;
@@ -351,7 +354,7 @@
   /** The parts of the season read-out, in the order the ranger says them. */
   function resultKeys(wonByPlayer, days) {
     var line = wonByPlayer ? 'result-win' : 'result-loss';
-    return [line, 'count-' + days, line + '-end'];
+    return [line + '-' + days, line + '-end'];
   }
 
   var api = {
