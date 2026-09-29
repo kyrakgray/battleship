@@ -91,8 +91,10 @@
     var frames = Math.floor(ac.sampleRate * length);
     var buffer = ac.createBuffer(1, frames, ac.sampleRate);
     var data = buffer.getChannelData(0);
+    var envelope = opts.envelope;
     for (var i = 0; i < frames; i++) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+      var at01 = i / frames;
+      data[i] = (Math.random() * 2 - 1) * (envelope ? envelope(at01) : 1 - at01);
     }
 
     var src = ac.createBufferSource();
@@ -104,34 +106,75 @@
     var gain = ac.createGain();
     var at = ac.currentTime + (opts.delay || 0);
     gain.gain.setValueAtTime(opts.peak || 0.09, at);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
+    // A shaped buffer carries its own decay; otherwise fade it out here.
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + (envelope ? length + 0.01 : length));
 
     src.connect(filter).connect(gain).connect(ac.destination);
     src.start(at);
   }
 
+  /** Graphite dragging over paper: a rise, a gritty middle, a lift. */
+  function graphite(at01) {
+    var swell = Math.pow(Math.sin(Math.PI * at01), 0.7);
+    var grain = 0.55 + 0.45 * Math.sin(at01 * 190);
+    return swell * grain;
+  }
+
+  /** A struck wooden bar: hard transient, then a short marimba-like body. */
+  function knock(opts) {
+    var peak = opts.peak || 0.1;
+    var length = opts.length || 0.2;
+    noise({
+      delay: opts.delay, length: 0.024, frequency: opts.from * 3, q: 0.6,
+      peak: peak * 0.45
+    });
+    tone({
+      delay: opts.delay, from: opts.from, to: opts.to, length: length,
+      type: 'sine', peak: peak
+    });
+    tone({
+      delay: opts.delay, from: opts.from * 4, length: length * 0.35,
+      type: 'sine', peak: peak * 0.3
+    });
+  }
+
   var EFFECTS = {
-    /** Pencil laying a park down on the paper map. */
+    /** A pencil laying a park down on the paper map, stroke by stroke. */
     draw: function () {
-      noise({ length: 0.22, frequency: 2400, q: 0.8, peak: 0.07 });
-      noise({ length: 0.16, frequency: 1500, q: 0.9, peak: 0.05, delay: 0.06 });
+      [
+        { delay: 0.00, length: 0.13, frequency: 3800 },
+        { delay: 0.12, length: 0.09, frequency: 3100 },
+        { delay: 0.21, length: 0.15, frequency: 4400 },
+        { delay: 0.35, length: 0.08, frequency: 3400 }
+      ].forEach(function (stroke) {
+        noise({
+          delay: stroke.delay, length: stroke.length, frequency: stroke.frequency,
+          q: 0.6, peak: 0.5, envelope: graphite
+        });
+        noise({
+          delay: stroke.delay, length: stroke.length, frequency: 600,
+          filter: 'lowpass', peak: 0.12, envelope: graphite
+        });
+      });
     },
-    /** A day lost on a forest road. */
+    /** A day lost on a forest road: a hollow knock on deadfall. */
     deadEnd: function () {
-      tone({ from: 220, to: 96, length: 0.28, type: 'triangle', peak: 0.1 });
-      noise({ length: 0.22, frequency: 320, filter: 'lowpass', peak: 0.06 });
+      knock({ from: 165, to: 120, length: 0.2, peak: 0.11 });
+      knock({ from: 104, to: 82, length: 0.3, peak: 0.09, delay: 0.13 });
+      noise({ length: 0.26, frequency: 260, filter: 'lowpass', peak: 0.05, delay: 0.13 });
     },
-    /** A trail marker, pitched to the park it belongs to. */
+    /** A trail marker, struck on the park's own wooden note. */
     marker: function (parkId) {
       var base = PARK_TONES[parkId] || 330;
-      tone({ from: base, length: 0.14, type: 'triangle', peak: 0.1 });
-      tone({ from: base * 1.5, length: 0.2, type: 'sine', peak: 0.08, delay: 0.1 });
+      knock({ from: base, length: 0.24, peak: 0.1 });
+      knock({ from: base * 1.5, length: 0.34, peak: 0.075, delay: 0.1 });
     },
-    /** The rubber stamp coming down on the passport page. */
+    /** The rubber stamp: ink pad, the press, and the lift off the page. */
     stamp: function () {
-      noise({ length: 0.12, frequency: 900, filter: 'lowpass', peak: 0.16 });
-      tone({ from: 150, to: 60, length: 0.22, type: 'square', peak: 0.09 });
-      tone({ from: 520, length: 0.3, type: 'sine', peak: 0.06, delay: 0.08 });
+      noise({ length: 0.05, frequency: 1500, filter: 'lowpass', peak: 0.2 });
+      noise({ length: 0.07, frequency: 3400, q: 0.7, peak: 0.07 });
+      tone({ from: 110, to: 62, length: 0.1, type: 'sine', peak: 0.18 });
+      noise({ length: 0.05, frequency: 2600, q: 1.2, peak: 0.05, delay: 0.12 });
     }
   };
 
