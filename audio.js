@@ -15,6 +15,7 @@
 
   var STORE_KEY = 'california-five-sound';
   var VOICE_DIR = 'voice/';
+  var VOICE_VERSION = '?v=30';
 
   /** Every line the ranger speaks, keyed by the moment it belongs to. */
   var LINES = {
@@ -168,7 +169,7 @@
     /** A pencil laying a park down on the paper map: a recorded stroke. */
     draw: function () {
       if (!pencil) {
-        pencil = new window.Audio('sfx/pencil.mp3?v=29');
+        pencil = new window.Audio('sfx/pencil.mp3?v=30');
         pencil.preload = 'auto';
       }
       pencil.currentTime = 0;
@@ -222,23 +223,48 @@
   var voiceNow = null;
   var queued = null;
 
+  /** Decodes one recording into samples the browser can splice. */
+  function decodeClip(key) {
+    var context = audioContext();
+    if (!context || !window.fetch) return null;
+    return window.fetch(VOICE_DIR + key + '.mp3' + VOICE_VERSION).then(function (response) {
+      if (!response.ok) throw new Error(key);
+      return response.arrayBuffer();
+    }).then(function (bytes) {
+      return new window.Promise(function (resolve, reject) {
+        context.decodeAudioData(bytes, resolve, reject);
+      });
+    });
+  }
+
   /**
-   * Stitches the parts of a read-out into one clip. Playing them one after
-   * another leaves a seam where the next recording is still loading, so the
-   * parts are fetched up front and joined into a single stream.
+   * Splices the parts of a read-out into one run of samples. Played as
+   * separate recordings they leave a seam where the next one is still
+   * loading, and the silence each encoder pads on lands mid-sentence.
    */
   function joinClips(keys) {
     var id = keys.join('|');
     if (!readOuts[id]) {
-      if (!window.fetch || !window.Blob || !window.URL) return null;
-      readOuts[id] = window.Promise.all(keys.map(function (key) {
-        return window.fetch(VOICE_DIR + key + '.mp3').then(function (response) {
-          if (!response.ok) throw new Error(key);
-          return response.blob();
+      var context = audioContext();
+      var parts = context && keys.map(decodeClip);
+      if (!parts || parts.indexOf(null) !== -1) return null;
+      readOuts[id] = window.Promise.all(parts).then(function (buffers) {
+        var frames = 0;
+        var channels = 1;
+        buffers.forEach(function (buffer) {
+          frames += buffer.length;
+          channels = Math.max(channels, buffer.numberOfChannels);
         });
-      })).then(function (parts) {
-        return window.URL.createObjectURL(
-          new window.Blob(parts, { type: 'audio/mpeg' }));
+        var run = context.createBuffer(channels, frames, buffers[0].sampleRate);
+        var at = 0;
+        buffers.forEach(function (buffer) {
+          for (var channel = 0; channel < channels; channel++) {
+            run.getChannelData(channel).set(
+              buffer.getChannelData(channel % buffer.numberOfChannels), at);
+          }
+          at += buffer.length;
+        });
+        return run;
       });
       readOuts[id]['catch'](function () { delete readOuts[id]; });
     }
@@ -247,7 +273,7 @@
 
   function clipFor(key) {
     if (!clips[key]) {
-      var audio = new window.Audio(VOICE_DIR + key + '.mp3');
+      var audio = new window.Audio(VOICE_DIR + key + '.mp3' + VOICE_VERSION);
       audio.preload = 'auto';
       clips[key] = audio;
     }
@@ -294,7 +320,7 @@
     next();
   }
 
-  /** Reads a stitched run of clips, dropping back to one clip at a time. */
+  /** Reads a spliced run of clips, dropping back to one clip at a time. */
   function playRun(keys) {
     var joined = joinClips(keys);
     if (!joined) {
@@ -302,20 +328,21 @@
       return;
     }
     var run = ++readOutRun;
-    joined.then(function (src) {
-      if (run !== readOutRun) return;
-      var clip = new window.Audio(src);
-      voiceNow = clip;
-      clip.addEventListener('ended', function () {
-        if (voiceNow === clip) voiceNow = null;
-      });
-      var playback = clip.play();
-      if (playback && playback['catch']) {
-        playback['catch'](function () {
-          voiceNow = null;
-          speak(keys);
-        });
-      }
+    joined.then(function (buffer) {
+      var context = audioContext();
+      if (run !== readOutRun || !context) return;
+      var source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      var handle = {
+        currentTime: 0,
+        pause: function () { try { source.stop(); } catch (err) { /* done */ } }
+      };
+      voiceNow = handle;
+      source.onended = function () {
+        if (voiceNow === handle) voiceNow = null;
+      };
+      source.start();
     })['catch'](function () {
       if (run === readOutRun) playClips(keys);
     });
