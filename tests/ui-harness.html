@@ -141,6 +141,11 @@
       served('/sfx/pencil.mp3') && served('/voice/result-win-17.mp3') &&
       served('/voice/result-loss-end.mp3') && served('/voice/result-win-100.mp3') &&
       served('/voice/result-loss-17.mp3') && served('/voice/result-loss-100.mp3'));
+    check('the tab wears the state flag',
+      served('/favicon.ico') && served('/favicon.png') &&
+      served('/apple-touch-icon.png') &&
+      !!d.querySelector('link[rel="icon"][href^="favicon.png"]') &&
+      !!d.querySelector('link[rel="apple-touch-icon"]'));
     check('every day a season can end on can be read aloud',
       / 17 days/.test(voiceLines['result-win-17'] || '') &&
       / 61 days/.test(voiceLines['result-loss-61'] || '') &&
