@@ -167,7 +167,7 @@
     /** A pencil laying a park down on the paper map: a recorded stroke. */
     draw: function () {
       if (!pencil) {
-        pencil = new window.Audio('sfx/pencil.mp3?v=27');
+        pencil = new window.Audio('sfx/pencil.mp3?v=28');
         pencil.preload = 'auto';
       }
       pencil.currentTime = 0;
