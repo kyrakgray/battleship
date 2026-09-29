@@ -2,39 +2,39 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Battleship — 100-game simulation</title>
+<title>The California Five — 100-game simulation</title>
 </head>
 <body>
 <h1>100-game simulation</h1>
-<p>Both sides place randomly and fire uniformly at random. Asserts every game
+<p>Both sides place randomly and scout uniformly at random. Asserts every game
 ends with exactly one winner within 200 total turns.</p>
 <pre id="out">running…</pre>
 <script src="../game.js"></script>
 <script>
 (function () {
-  var B = window.Battleship;
+  var B = window.CaliforniaFive;
   var GAMES = 100;
   var TURN_LIMIT = 200;
 
   function playGame() {
     var player = B.createBoard();
-    var opponent = B.createBoard();
-    B.placeFleetRandomly(player);
-    B.placeFleetRandomly(opponent);
+    var rival = B.createBoard();
+    B.placeRouteRandomly(player);
+    B.placeRouteRandomly(rival);
 
     var turns = 0;
     var shooterIsPlayer = true;
 
     while (turns < TURN_LIMIT) {
-      var target = shooterIsPlayer ? opponent : player;
-      var coord = B.chooseOpponentTarget(target);
+      var square = shooterIsPlayer ? rival : player;
+      var coord = B.chooseRivalSquare(square);
       if (!coord) break;
 
-      var result = B.fireAt(target, coord.row, coord.col);
+      var result = B.scout(square, coord.row, coord.col);
       turns++;
-      if (!result.legal) throw new Error('illegal shot at ' + B.coordLabel(coord.row, coord.col));
-      if (result.fleetDefeated) {
-        return { winner: shooterIsPlayer ? 'player' : 'opponent', turns: turns };
+      if (!result.legal) throw new Error('illegal scouting day at ' + B.coordLabel(coord.row, coord.col));
+      if (result.routeComplete) {
+        return { winner: shooterIsPlayer ? 'player' : 'rival', turns: turns };
       }
       shooterIsPlayer = !shooterIsPlayer;
     }
@@ -44,11 +44,11 @@ ends with exactly one winner within 200 total turns.</p>
   var failures = [];
   var maxTurns = 0;
   var totalTurns = 0;
-  var wins = { player: 0, opponent: 0 };
+  var wins = { player: 0, rival: 0 };
 
   for (var i = 0; i < GAMES; i++) {
     var game = playGame();
-    if (game.winner !== 'player' && game.winner !== 'opponent') {
+    if (game.winner !== 'player' && game.winner !== 'rival') {
       failures.push('game ' + (i + 1) + ': no winner after ' + game.turns + ' turns');
       continue;
     }
@@ -60,11 +60,11 @@ ends with exactly one winner within 200 total turns.</p>
     maxTurns = Math.max(maxTurns, game.turns);
   }
 
-  var completed = wins.player + wins.opponent;
+  var completed = wins.player + wins.rival;
   var lines = [
     'games simulated: ' + GAMES,
     'games with exactly one winner: ' + completed,
-    'wins — player: ' + wins.player + ', opponent: ' + wins.opponent,
+    'wins — player: ' + wins.player + ', rival: ' + wins.rival,
     'turns — max: ' + maxTurns + ', average: ' + (totalTurns / Math.max(completed, 1)).toFixed(1),
     'turn limit: ' + TURN_LIMIT
   ];

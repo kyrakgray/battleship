@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The California Five — UI smoke run</title>
+</head>
+<body>
+<pre id="out">running…</pre>
+<iframe id="frame" src="../index.html" width="1200" height="900"></iframe>
+<script>
+/*
+ * Drives the real page in an iframe: opens the intro, draws a random route,
+ * seals and trades, then plays a full season of scouting days, checking the
+ * season clock, passports and reset along the way.
+ */
+(function () {
+  var lines = [];
+  var failures = 0;
+
+  function check(label, ok, detail) {
+    if (!ok) failures++;
+    lines.push((ok ? 'PASS' : 'FAIL') + ' — ' + label + (detail ? ' :: ' + detail : ''));
+    document.getElementById('out').textContent = lines.join('\n');
+  }
+
+  function finish() {
+    lines.push(failures === 0 ? 'UI SMOKE RUN PASSED' : failures + ' UI CHECK(S) FAILED');
+    document.getElementById('out').textContent = lines.join('\n');
+  }
+
+  var frame = document.getElementById('frame');
+  frame.addEventListener('load', function () {
+    var w = frame.contentWindow;
+    var d = frame.contentDocument;
+    var errors = [];
+    w.addEventListener('error', function (e) { errors.push(String(e.message)); });
+
+    var $ = function (id) { return d.getElementById(id); };
+
+    check('page title is the theme title', d.title === 'The California Five', d.title);
+    check('intro window is visible on load',
+      $('intro') && !$('intro').classList.contains('hidden'));
+    check('intro names the Summer Classic',
+      /California National Park Summer Classic/.test($('intro').textContent));
+    ['3,408,396 acres', '795,156 acres', '761,748 acres', '461,901 acres', '404,063 acres']
+      .forEach(function (acres) {
+        check('intro lists ' + acres, $('intro').textContent.indexOf(acres) !== -1);
+      });
+
+    $('btn-intro-close').click();
+    check('intro closes on "Enter the Classic"', $('intro').classList.contains('hidden'));
+
+    check('five park cards rendered', $('park-list').children.length === 5);
+    check('park cards show acreage',
+      $('park-list').textContent.indexOf('3,408,396 acres') !== -1);
+    check('start is gated until the route is drawn', $('btn-start').disabled);
+    check('season clock starts at zero of 100',
+      $('days-used').textContent === '0' && $('days-total').textContent === '100' &&
+      $('days-left').textContent === '100');
+
+    $('btn-random').click();
+    check('random route enables seal & trade', !$('btn-start').disabled);
+    $('btn-start').click();
+
+    check('rival map is live after sealing',
+      !$('rival-board').classList.contains('disabled'));
+    check('passport slots rendered for both explorers',
+      $('status-player').children.length === 5 && $('status-rival').children.length === 5);
+    check('passport shows acreage',
+      $('status-rival').textContent.indexOf('404,063 acres') !== -1);
+    check('no park stamped before any scouting day',
+      $('status-rival').textContent.indexOf('STAMPED') === -1);
+
+    var cells = $('rival-board').querySelectorAll('.cell');
+    var order = [];
+    for (var i = 0; i < cells.length; i++) order.push(cells[i]);
+    var next = 0;
+
+    function clickNext() {
+      // Spend a day, then let the rival's turn resolve before the next click.
+      while (next < order.length &&
+             (order[next].classList.contains('marker') ||
+              order[next].classList.contains('dead-end'))) next++;
+      if (next >= order.length) return step(true);
+
+      var before = Number($('days-used').textContent);
+      order[next].click();
+      var after = Number($('days-used').textContent);
+      if (before === 0) {
+        check('a scouting day advances the season clock', after === before + 1, before + ' -> ' + after);
+        check('the square is marked', order[next].classList.contains('marker') ||
+          order[next].classList.contains('dead-end'));
+        var repeatBefore = $('log').children.length;
+        order[next].click();
+        check('re-scouting a square does nothing', $('log').children.length === repeatBefore);
+      }
+      w.setTimeout(step, 80);
+    }
+
+    function step(forced) {
+      var over = $('phase-label').textContent.indexOf('Season over') !== -1;
+      if (over || forced) return report();
+      if ($('phase-label').textContent.indexOf('rival is out scouting') !== -1) {
+        return w.setTimeout(step, 80);
+      }
+      clickNext();
+    }
+
+    function report() {
+      var over = $('phase-label').textContent.indexOf('Season over') !== -1;
+      check('a full season reaches a result', over, $('phase-label').textContent);
+      var msg = $('message').textContent;
+      check('result names the California Five or the rival',
+        /California Five|rival finished/.test(msg), msg);
+      check('result is shown in the large result style',
+        $('message').className.indexOf('result') !== -1);
+      var stampedSide = /California Five/.test(msg) ? 'status-rival' : 'status-player';
+      check('winning passport holds five stamps',
+        ($(stampedSide).textContent.match(/STAMPED/g) || []).length === 5);
+      check('reveal button only after a loss',
+        $('btn-reveal').classList.contains('hidden') === /California Five/.test(msg));
+      check('field notes kept the whole season', $('log').children.length > 10,
+        $('log').children.length + ' entries');
+      check('season clock counted the days scouted',
+        Number($('days-used').textContent) + Number($('days-left').textContent) === 100,
+        $('days-used').textContent + ' + ' + $('days-left').textContent);
+
+      $('btn-new-game').click();
+      check('new season clears the field notes', $('log').children.length === 0);
+      check('new season resets the clock',
+        $('days-used').textContent === '0' && $('days-left').textContent === '100');
+      check('new season clears both maps',
+        d.querySelectorAll('.cell.marker, .cell.dead-end').length === 0);
+      check('new season clears the passports',
+        $('status-player').textContent.indexOf('STAMPED') === -1 &&
+        $('status-rival').textContent.indexOf('STAMPED') === -1);
+      check('new season re-gates seal & trade', $('btn-start').disabled);
+      check('no uncaught page errors', errors.length === 0, errors.join(' | '));
+      finish();
+    }
+
+    step();
+  });
+})();
+</script>
+</body>
+</html>

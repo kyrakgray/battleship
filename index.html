@@ -3,89 +3,141 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Battleship</title>
-<link rel="stylesheet" href="styles.css?v=12">
+<title>The California Five</title>
+<link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
 <header>
-  <h1>Battleship</h1>
-  <p class="tagline">You versus the computer — sink all five enemy ships first.</p>
+  <h1>The California Five</h1>
+  <p class="tagline">The California National Park Summer Classic — you and your rival
+    each seal a five-park itinerary and trade. First explorer to finish the route
+    they were handed wins.</p>
 </header>
 
+<div class="intro-backdrop" id="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+  <section class="intro">
+    <p class="intro-kicker">Est. 1949 · Sierra Nevada &amp; the desert parks</p>
+    <h2 id="intro-title">The California National Park Summer Classic</h2>
+    <p>Every summer you and your rival meet at the Tioga Pass gate for the Classic.
+      The rules have never changed: each of you draws a five-park itinerary, seals
+      it, and hands it to the other. You spend the season chasing down the route
+      you were given — you know which five parks are on it, not where they are.</p>
+    <p>The pass opened late this year, on the fourth of July, after a heavy winter.
+      An early El Niño closes it 100 days later. Every square you scout costs one
+      trail day, so you have a hundred of them and no more.</p>
+    <p>Find every square of a park and you earn its cancellation stamp. Collect all
+      five stamps before your rival collects yours and the Classic is yours —
+      <strong>The California Five</strong>.</p>
+
+    <h3>This year's five parks</h3>
+    <ul class="intro-parks">
+      <li><span class="intro-park-name">Death Valley</span><span class="intro-park-cells">5 cells</span><span class="intro-park-acres">3,408,396 acres</span></li>
+      <li><span class="intro-park-name">Joshua Tree</span><span class="intro-park-cells">4 cells</span><span class="intro-park-acres">795,156 acres</span></li>
+      <li><span class="intro-park-name">Yosemite</span><span class="intro-park-cells">3 cells</span><span class="intro-park-acres">761,748 acres</span></li>
+      <li><span class="intro-park-name">Kings Canyon</span><span class="intro-park-cells">3 cells</span><span class="intro-park-acres">461,901 acres</span></li>
+      <li><span class="intro-park-name">Sequoia</span><span class="intro-park-cells">2 cells</span><span class="intro-park-acres">404,063 acres</span></li>
+    </ul>
+
+    <div class="buttons">
+      <button id="btn-intro-close" type="button">Enter the Classic</button>
+      <button id="btn-intro-how-to" class="link-btn" type="button">How to play</button>
+    </div>
+  </section>
+</div>
+
 <main>
-  <section class="how-to" id="how-to">
+  <section class="how-to hidden" id="how-to">
     <h2>How to play</h2>
     <ol>
-      <li><strong>Place your fleet.</strong> Pick a ship, press <kbd>R</kbd> to switch
-        between horizontal and vertical, then click a square on <em>Your Fleet</em> to
-        drop it. Ships can't overlap or hang off the edge. <em>Place Randomly</em>
-        does it all for you, and <em>Reset Placement</em> clears the board so you
-        can start the layout over.</li>
-      <li><strong>Start the game.</strong> The button unlocks once all five ships are
-        down. The computer hides its own fleet in Enemy Waters and you shoot first.</li>
-      <li><strong>Fire.</strong> Click a square on <em>Enemy Waters</em>. Red is a hit,
-        white is a miss, and you're told which ship you struck or sank. The opponent
-        then takes its shot at your fleet. The <em>Message log</em> shows the last few
-        moves — scroll up inside it to read every shot of the game so far.</li>
-      <li><strong>Win.</strong> Sink all five enemy ships before it sinks yours. The
-        banner above the boards always says whose turn it is and what just
-        happened.</li>
+      <li><strong>Draw your route.</strong> Pick a park, press <kbd>R</kbd> to switch
+        between running it across or down, then click a square on
+        <em>The Route You Drew</em> to lay it down. Parks can't overlap or run off the
+        map. <em>Draw a Random Route</em> does it all for you, and <em>Clear Route</em>
+        wipes the map so you can start over.</li>
+      <li><strong>Seal and trade.</strong> The button unlocks once all five parks are
+        down. Your rival gets your route and you get theirs, sealed — you know which
+        five parks are on it, not where. You take the first scouting day.</li>
+      <li><strong>Watch the season clock.</strong> The pass is open for 100 trail
+        days and every square you scout costs one, so the counter under the banner
+        is your whole season.</li>
+      <li><strong>Spend a scouting day.</strong> Click a square on
+        <em>The Route Drawn For You</em>. A dead end is a day burned on a forest road;
+        a trail marker means you're on the route, and you're told which park. Find
+        every square of a park and it's stamped in your passport. Your rival then
+        scouts your route. <em>Field notes</em> show the last few days — scroll up
+        inside to read the whole season.</li>
+      <li><strong>Collect the California Five.</strong> Stamp all five parks before
+        your rival stamps yours. The banner above the maps always says whose day it
+        is and what just happened.</li>
     </ol>
-    <button id="btn-how-to-close" type="button">Got it — let's play</button>
+    <button id="btn-how-to-close" type="button">Got it — let's go</button>
   </section>
 
   <section class="controls">
     <div class="placement-controls" id="placement-controls">
-      <div class="fleet" id="fleet-list" role="listbox" aria-label="Fleet"></div>
+      <div class="park-cards" id="park-list" role="listbox" aria-label="Parks"></div>
       <div class="buttons">
-        <button id="btn-random" type="button">Place Randomly</button>
-        <button id="btn-reset" type="button">Reset Placement</button>
-        <button id="btn-start" type="button" disabled>Start Game</button>
+        <button id="btn-random" type="button">Draw a Random Route</button>
+        <button id="btn-reset" type="button">Clear Route</button>
+        <button id="btn-start" type="button" disabled>Seal &amp; Trade Routes</button>
       </div>
-      <p class="hint">Select a ship, press <kbd>R</kbd> to rotate, click a square to place it.</p>
-      <p class="orientation">Orientation: <strong id="orientation-label">Horizontal</strong></p>
+      <p class="hint">Select a park, press <kbd>R</kbd> to rotate, click a square to lay it down.</p>
+      <p class="orientation">Direction: <strong id="orientation-label">Across</strong></p>
     </div>
-    <div class="battle-controls hidden" id="battle-controls">
-      <p class="hint">Click a square on Enemy Waters to fire.</p>
+    <div class="season-controls hidden" id="season-controls">
+      <p class="hint">Click a square on the route drawn for you to spend a scouting day.</p>
       <div class="buttons">
-        <button id="btn-reveal" class="hidden" type="button">Reveal Enemy Ship Locations</button>
-        <button id="btn-new-game" type="button">New Game</button>
+        <button id="btn-reveal" class="hidden" type="button">Reveal the Route You Missed</button>
+        <button id="btn-new-game" type="button">New Season</button>
       </div>
     </div>
-    <button id="btn-how-to-open" class="link-btn" type="button">How to play</button>
+    <div class="buttons secondary">
+      <button id="btn-how-to-open" class="link-btn" type="button">How to play</button>
+      <button id="btn-intro-open" class="link-btn" type="button">The story</button>
+    </div>
   </section>
 
   <section class="panel log-panel">
-    <h3>Message log</h3>
+    <h3>Field notes</h3>
     <ol class="log" id="log" aria-live="polite"></ol>
   </section>
 
   <section class="status" id="status-bar">
-    <p class="turn" id="phase-label">Ship placement phase</p>
+    <p class="turn" id="phase-label">Route planning</p>
     <p class="message" id="message" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="season-clock" id="season-clock" aria-live="polite">
+    <p class="clock-line">Trail days used: <strong id="days-used">0</strong> of
+      <strong id="days-total">100</strong> · Tioga Pass closes in
+      <strong id="days-left">100</strong> days</p>
+    <div class="clock-bar"><span id="clock-fill"></span></div>
+    <p class="clock-note">Your rival has spent <strong id="rival-days-used">0</strong> trail days.</p>
   </section>
 
   <section class="boards">
     <div class="board-wrap">
-      <h2>Your Fleet</h2>
+      <h2>The Route You Drew</h2>
+      <p class="board-note">Sealed and handed to your rival — they're scouting it.</p>
       <div class="board" id="player-board"></div>
       <div class="panel status-panel">
-        <h3>Fleet status</h3>
-        <ul id="status-player"></ul>
+        <h3>Rival's Passport</h3>
+        <ul class="passport" id="status-player"></ul>
       </div>
     </div>
     <div class="board-wrap">
-      <h2>Enemy Waters</h2>
-      <div class="board disabled" id="enemy-board" aria-disabled="true"></div>
+      <h2>The Route Drawn For You</h2>
+      <p class="board-note">Five parks are hidden here. Scout them out.</p>
+      <div class="board disabled" id="rival-board" aria-disabled="true"></div>
       <div class="panel status-panel">
-        <h3>Fleet status</h3>
-        <ul id="status-enemy"></ul>
+        <h3>Your Passport</h3>
+        <ul class="passport" id="status-rival"></ul>
       </div>
     </div>
   </section>
 </main>
 
-<script src="game.js?v=12"></script>
-<script src="ui.js?v=12"></script>
+<script src="game.js?v=14"></script>
+<script src="ui.js?v=14"></script>
 </body>
 </html>

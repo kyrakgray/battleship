@@ -2,22 +2,22 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Battleship — targeting benchmark</title>
+<title>The California Five — targeting benchmark</title>
 </head>
 <body>
 <h1>Targeting benchmark</h1>
-<p>1,000 games per strategy against randomly placed fleets. Reports the average
-number of shots needed to sink all five ships, and asserts no square is ever
-fired on twice and every game terminates.</p>
+<p>1,000 games per strategy against randomly drawn routes. Reports the average
+number of scouting days needed to stamp all five parks, and asserts no square is ever
+scouted twice and every game terminates.</p>
 <pre id="out">running…</pre>
 <script src="../game.js"></script>
 <script>
 (function () {
-  var B = window.Battleship;
+  var B = window.CaliforniaFive;
   var GAMES = 1000;
-  var MAX_SHOTS = 100;
+  var MAX_DAYS = 100;
 
-  /** Deterministic RNG so both strategies face the same fleets and dice. */
+  /** Deterministic RNG so both strategies face the same routes and dice. */
   function seeded(seed) {
     var s = seed >>> 0;
     return function () {
@@ -26,44 +26,44 @@ fired on twice and every game terminates.</p>
     };
   }
 
-  function runGame(chooseTarget, rng) {
+  function runGame(chooseSquare, rng) {
     var board = B.createBoard();
-    B.placeFleetRandomly(board, rng);
+    B.placeRouteRandomly(board, rng);
 
     var seen = {};
-    var shots = 0;
+    var days = 0;
 
-    while (shots < MAX_SHOTS) {
-      var target = chooseTarget(board, rng);
-      if (!target) return { error: 'ran out of targets after ' + shots + ' shots' };
+    while (days < MAX_DAYS) {
+      var square = chooseSquare(board, rng);
+      if (!square) return { error: 'ran out of squares after ' + days + ' days' };
 
-      var key = target.row + ',' + target.col;
-      if (seen[key]) return { error: 'repeat shot at ' + B.coordLabel(target.row, target.col) };
+      var key = square.row + ',' + square.col;
+      if (seen[key]) return { error: 'repeat scouting day at ' + B.coordLabel(square.row, square.col) };
       seen[key] = true;
 
-      var result = B.fireAt(board, target.row, target.col);
-      shots++;
-      if (!result.legal) return { error: 'illegal shot at ' + B.coordLabel(target.row, target.col) };
-      if (result.fleetDefeated) return { shots: shots };
+      var result = B.scout(board, square.row, square.col);
+      days++;
+      if (!result.legal) return { error: 'illegal scouting day at ' + B.coordLabel(square.row, square.col) };
+      if (result.routeComplete) return { days: days };
     }
-    return { error: 'fleet not sunk within ' + MAX_SHOTS + ' shots' };
+    return { error: 'route not completed within ' + MAX_DAYS + ' days' };
   }
 
-  function benchmark(label, chooseTarget) {
+  function benchmark(label, chooseSquare) {
     var total = 0;
     var worst = 0;
-    var best = MAX_SHOTS;
+    var best = MAX_DAYS;
     var errors = [];
 
     for (var i = 0; i < GAMES; i++) {
-      var game = runGame(chooseTarget, seeded(i + 1));
+      var game = runGame(chooseSquare, seeded(i + 1));
       if (game.error) {
         errors.push('game ' + (i + 1) + ': ' + game.error);
         continue;
       }
-      total += game.shots;
-      worst = Math.max(worst, game.shots);
-      best = Math.min(best, game.shots);
+      total += game.days;
+      worst = Math.max(worst, game.days);
+      best = Math.min(best, game.days);
     }
 
     var completed = GAMES - errors.length;
@@ -77,53 +77,53 @@ fired on twice and every game terminates.</p>
     };
   }
 
-  var random = benchmark('random targeting', B.chooseRandomTarget);
-  var hunt = benchmark('hunt-and-target', B.chooseOpponentTarget);
+  var random = benchmark('random roaming', B.chooseRandomSquare);
+  var follow = benchmark('roam-and-follow', B.chooseRivalSquare);
 
   function describe(r) {
-    return r.label + ': average ' + r.average.toFixed(1) + ' shots ' +
+    return r.label + ': average ' + r.average.toFixed(1) + ' days ' +
       '(best ' + r.best + ', worst ' + r.worst + ', ' +
       r.completed + '/' + GAMES + ' games completed' +
       (r.errors.length ? ', ' + r.errors.length + ' FAILURES' : '') + ')';
   }
 
   /**
-   * Adjacent ships: sinking one must not abandon the hit on the other.
-   * Destroyer at A1–A2, cruiser at B1–B3; the opponent hits B1, then sinks
-   * the destroyer, and must keep working around B1.
+   * Adjacent parks: stamping one must not abandon the marker on the other.
+   * Sequoia at A1–A2, Yosemite at B1–B3; the rival marks B1, then stamps
+   * Sequoia, and must keep working around B1.
    */
-  function adjacentShipCheck() {
+  function adjacentParkCheck() {
     var board = B.createBoard();
-    B.placeShip(board, 'destroyer', 0, 0, B.ORIENTATIONS.HORIZONTAL);
-    B.placeShip(board, 'cruiser', 1, 0, B.ORIENTATIONS.HORIZONTAL);
+    B.placePark(board, 'sequoia', 0, 0, B.ORIENTATIONS.HORIZONTAL);
+    B.placePark(board, 'yosemite', 1, 0, B.ORIENTATIONS.HORIZONTAL);
 
-    B.fireAt(board, 1, 0);
-    B.fireAt(board, 0, 0);
-    var sink = B.fireAt(board, 0, 1);
-    if (!sink.sunk || sink.shipId !== 'destroyer') return 'setup failed: destroyer not sunk';
+    B.scout(board, 1, 0);
+    B.scout(board, 0, 0);
+    var stamp = B.scout(board, 0, 1);
+    if (!stamp.stamped || stamp.parkId !== 'sequoia') return 'setup failed: Sequoia not stamped';
 
-    var target = B.chooseOpponentTarget(board, seeded(7));
-    var pursuesCruiser = (target.row === 1 && target.col === 1) ||
-      (target.row === 2 && target.col === 0);
-    return pursuesCruiser
-      ? 'adjacent-ship check: kept hunting the cruiser at ' + B.coordLabel(target.row, target.col)
-      : 'ADJACENT-SHIP CHECK FAILED: went to ' + B.coordLabel(target.row, target.col);
+    var square = B.chooseRivalSquare(board, seeded(7));
+    var pursuesYosemite = (square.row === 1 && square.col === 1) ||
+      (square.row === 2 && square.col === 0);
+    return pursuesYosemite
+      ? 'adjacent-park check: kept scouting Yosemite at ' + B.coordLabel(square.row, square.col)
+      : 'ADJACENT-PARK CHECK FAILED: went to ' + B.coordLabel(square.row, square.col);
   }
 
-  var adjacency = adjacentShipCheck();
-  var lines = [describe(random), describe(hunt), adjacency];
-  var improvement = (1 - hunt.average / random.average) * 100;
-  lines.push('improvement: ' + improvement.toFixed(1) + '% fewer shots');
-  lines.push('no repeat shots, all games terminated: ' +
-    (random.errors.length === 0 && hunt.errors.length === 0 ? 'yes' : 'NO'));
+  var adjacency = adjacentParkCheck();
+  var lines = [describe(random), describe(follow), adjacency];
+  var improvement = (1 - follow.average / random.average) * 100;
+  lines.push('improvement: ' + improvement.toFixed(1) + '% fewer days');
+  lines.push('no repeat days, all games terminated: ' +
+    (random.errors.length === 0 && follow.errors.length === 0 ? 'yes' : 'NO'));
 
   var ok = adjacency.indexOf('FAILED') === -1 && adjacency.indexOf('setup failed') === -1 &&
-    random.errors.length === 0 && hunt.errors.length === 0 &&
-    random.completed === GAMES && hunt.completed === GAMES &&
-    hunt.average < random.average * 0.85;
+    random.errors.length === 0 && follow.errors.length === 0 &&
+    random.completed === GAMES && follow.completed === GAMES &&
+    follow.average < random.average * 0.85;
   lines.push(ok ? 'BENCHMARK PASSED' : 'BENCHMARK FAILED');
   if (random.errors.length) lines.push(random.errors.slice(0, 5).join('\n'));
-  if (hunt.errors.length) lines.push(hunt.errors.slice(0, 5).join('\n'));
+  if (follow.errors.length) lines.push(follow.errors.slice(0, 5).join('\n'));
 
   document.getElementById('out').textContent = lines.join('\n');
 })();

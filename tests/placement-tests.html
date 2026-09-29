@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Battleship placement tests</title>
+<title>The California Five — placement tests</title>
 </head>
 <body>
 <h1>Placement tests</h1>
@@ -10,7 +10,7 @@
 <script src="../game.js"></script>
 <script>
 (function () {
-  var B = window.Battleship;
+  var B = window.CaliforniaFive;
   var lines = [];
   var failures = 0;
 
@@ -20,38 +20,57 @@
   }
 
   var board = B.createBoard();
-  check('carrier placed at A1 horizontal',
-    B.placeShip(board, 'carrier', 0, 0, 'horizontal').success);
+  check('Death Valley placed at A1 across',
+    B.placePark(board, 'death-valley', 0, 0, 'horizontal').success);
 
-  var overlap = B.placeShip(board, 'battleship', 0, 2, 'horizontal');
+  var overlap = B.placePark(board, 'joshua-tree', 0, 2, 'horizontal');
   check('overlapping placement rejected', !overlap.success, overlap.reason);
 
-  var edge = B.placeShip(board, 'cruiser', 0, 8, 'horizontal');
+  var edge = B.placePark(board, 'yosemite', 0, 8, 'horizontal');
   check('placement past right edge rejected', !edge.success, edge.reason);
 
-  var edgeV = B.placeShip(board, 'cruiser', 8, 0, 'vertical');
+  var edgeV = B.placePark(board, 'yosemite', 8, 0, 'vertical');
   check('placement past bottom edge rejected', !edgeV.success, edgeV.reason);
 
-  check('cruiser fits vertically at G1',
-    B.placeShip(board, 'cruiser', 6, 0, 'vertical').success);
-  check('duplicate ship rejected',
-    !B.placeShip(board, 'cruiser', 3, 3, 'horizontal').success);
+  check('Yosemite fits vertically at G1',
+    B.placePark(board, 'yosemite', 6, 0, 'vertical').success);
+  check('duplicate park rejected',
+    !B.placePark(board, 'yosemite', 3, 3, 'horizontal').success);
 
   B.clearBoard(board);
-  check('clearBoard removes all ships', B.placedShipIds(board).length === 0);
+  check('clearBoard removes all parks', B.placedParkIds(board).length === 0);
 
   var randomFailures = 0;
   for (var i = 0; i < 10000; i++) {
     var b = B.createBoard();
-    if (!B.placeFleetRandomly(b)) { randomFailures++; continue; }
+    if (!B.placeRouteRandomly(b)) { randomFailures++; continue; }
     var occupied = 0;
     for (var r = 0; r < 10; r++) {
       for (var c = 0; c < 10; c++) if (b.grid[r][c]) occupied++;
     }
-    if (occupied !== 17 || !B.allShipsPlaced(b)) randomFailures++;
+    if (occupied !== 17 || !B.allParksPlaced(b)) randomFailures++;
   }
-  check('10000 random fleets are in-bounds and non-overlapping',
+  check('10000 random routes are in-bounds and non-overlapping',
     randomFailures === 0, randomFailures + ' failures');
+
+  // A park is stamped only on the day its last square is found — never before,
+  // and dead ends next to it must not count toward it.
+  var stampBoard = B.createBoard();
+  B.placePark(stampBoard, 'yosemite', 4, 4, 'horizontal');
+  var early = true;
+  [[4, 4], [4, 5]].forEach(function (cell) {
+    B.scout(stampBoard, cell[0], cell[1]);
+    if (B.isParkStamped(stampBoard, 'yosemite')) early = false;
+  });
+  B.scout(stampBoard, 3, 4);
+  B.scout(stampBoard, 5, 6);
+  check('park is not stamped while any of its squares is unfound',
+    early && !B.isParkStamped(stampBoard, 'yosemite'));
+  var last = B.scout(stampBoard, 4, 6);
+  check('park is stamped on the day its final square is found',
+    last.stamped && B.isParkStamped(stampBoard, 'yosemite'));
+  check('stamping one park does not complete an unfinished route',
+    !B.isRouteComplete(stampBoard) && B.stampedParkIds(stampBoard).length === 1);
 
   lines.push(failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED');
   document.getElementById('out').textContent = lines.join('\n');

@@ -2,49 +2,59 @@
 (function () {
   'use strict';
 
-  var B = window.Battleship;
+  var B = window.CaliforniaFive;
 
-  var PHASES = { PLACEMENT: 'placement', PLAYER_TURN: 'player-turn', OPPONENT_TURN: 'opponent-turn', OVER: 'over' };
-  var OPPONENT_DELAY_MS = 600;
+  var PHASES = { PLACEMENT: 'placement', PLAYER_TURN: 'player-turn', RIVAL_TURN: 'rival-turn', OVER: 'over' };
+  var RIVAL_DELAY_MS = 600;
   var LOG_PIN_SLACK_PX = 24;
 
   var state = {
     phase: PHASES.PLACEMENT,
     playerBoard: B.createBoard(),
-    enemyBoard: B.createBoard(),
-    selectedShipId: B.SHIP_TYPES[0].id,
+    rivalBoard: B.createBoard(),
+    selectedParkId: B.PARKS[0].id,
     orientation: B.ORIENTATIONS.HORIZONTAL,
     hover: null,
     log: [],
     winner: null,
-    revealEnemy: false
+    revealRival: false,
+    acresFormat: new Intl.NumberFormat('en-US')
   };
 
   var els = {
     phaseLabel: document.getElementById('phase-label'),
     playerBoard: document.getElementById('player-board'),
-    enemyBoard: document.getElementById('enemy-board'),
-    fleetList: document.getElementById('fleet-list'),
+    rivalBoard: document.getElementById('rival-board'),
+    parkList: document.getElementById('park-list'),
     message: document.getElementById('message'),
     orientationLabel: document.getElementById('orientation-label'),
     placementControls: document.getElementById('placement-controls'),
-    battleControls: document.getElementById('battle-controls'),
+    seasonControls: document.getElementById('season-controls'),
     btnRandom: document.getElementById('btn-random'),
     btnReset: document.getElementById('btn-reset'),
     btnStart: document.getElementById('btn-start'),
     btnNewGame: document.getElementById('btn-new-game'),
     btnReveal: document.getElementById('btn-reveal'),
     statusPlayer: document.getElementById('status-player'),
-    statusEnemy: document.getElementById('status-enemy'),
+    statusRival: document.getElementById('status-rival'),
     statusBar: document.getElementById('status-bar'),
     howTo: document.getElementById('how-to'),
     btnHowToOpen: document.getElementById('btn-how-to-open'),
     btnHowToClose: document.getElementById('btn-how-to-close'),
+    intro: document.getElementById('intro'),
+    btnIntroOpen: document.getElementById('btn-intro-open'),
+    btnIntroClose: document.getElementById('btn-intro-close'),
+    btnIntroHowTo: document.getElementById('btn-intro-how-to'),
+    daysUsed: document.getElementById('days-used'),
+    daysTotal: document.getElementById('days-total'),
+    daysLeft: document.getElementById('days-left'),
+    clockFill: document.getElementById('clock-fill'),
+    rivalDaysUsed: document.getElementById('rival-days-used'),
     log: document.getElementById('log')
   };
 
   var playerCells = {};
-  var enemyCells = {};
+  var rivalCells = {};
 
   function cellKey(row, col) {
     return row + ',' + col;
@@ -81,21 +91,31 @@
     }
   }
 
-  function renderFleet() {
-    els.fleetList.innerHTML = '';
-    B.SHIP_TYPES.forEach(function (type) {
-      var placed = Boolean(state.playerBoard.ships[type.id]);
+  function acreage(park) {
+    return state.acresFormat.format(park.acres) + ' acres';
+  }
+
+  function renderParkCards() {
+    els.parkList.innerHTML = '';
+    B.PARKS.forEach(function (type) {
+      var placed = Boolean(state.playerBoard.parks[type.id]);
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.style.setProperty('--ship-color', type.color);
-      btn.className = 'ship-btn' +
-        (state.selectedShipId === type.id ? ' selected' : '') +
+      btn.style.setProperty('--park-color', type.color);
+      btn.className = 'park-btn' +
+        (state.selectedParkId === type.id ? ' selected' : '') +
         (placed ? ' placed' : '');
-      btn.dataset.shipId = type.id;
+      btn.dataset.parkId = type.id;
 
       var label = document.createElement('span');
+      label.className = 'park-label';
       label.textContent = type.name + ' (' + type.length + ')';
       btn.appendChild(label);
+
+      var acres = document.createElement('span');
+      acres.className = 'acres';
+      acres.textContent = acreage(type);
+      btn.appendChild(acres);
 
       var pips = document.createElement('span');
       pips.className = 'pips';
@@ -108,56 +128,57 @@
       btn.appendChild(pips);
 
       btn.addEventListener('click', function () {
-        selectShip(type.id);
+        selectPark(type.id);
       });
-      els.fleetList.appendChild(btn);
+      els.parkList.appendChild(btn);
     });
   }
 
-  /** Player grid: own ships plus the shots the opponent has taken at them. */
+  /** Your own route, plus the scouting days your rival has spent on it. */
   function renderPlayerBoard() {
     for (var row = 0; row < B.BOARD_SIZE; row++) {
       for (var col = 0; col < B.BOARD_SIZE; col++) {
         var cell = playerCells[cellKey(row, col)];
-        var shipId = state.playerBoard.grid[row][col];
-        var shot = state.playerBoard.shots[row][col];
-        cell.className = 'cell' + (shipId ? ' ship' : '') +
-          (shot ? ' ' + shot : '');
-        cell.style.background = shipId && !shot ? B.getShipType(shipId).color : '';
+        var parkId = state.playerBoard.grid[row][col];
+        var day = state.playerBoard.days[row][col];
+        cell.className = 'cell' + (parkId ? ' park' : '') +
+          (day ? ' ' + day : '');
+        cell.style.background = parkId && !day ? B.getPark(parkId).color : '';
       }
     }
     renderPreview();
   }
 
   /**
-   * Enemy grid: shots only, so opponent ship positions never reach the DOM —
-   * except once the game is over and the player asks to reveal them.
+   * The route drawn for you: scouting results only, so the hidden parks never
+   * reach the DOM — except once the season is over and the player asks to see
+   * the route they missed.
    */
-  function renderEnemyBoard() {
+  function renderRivalBoard() {
     for (var row = 0; row < B.BOARD_SIZE; row++) {
       for (var col = 0; col < B.BOARD_SIZE; col++) {
-        var cell = enemyCells[cellKey(row, col)];
-        var shot = state.enemyBoard.shots[row][col];
-        var shipId = state.revealEnemy ? state.enemyBoard.grid[row][col] : null;
-        var reveal = Boolean(shipId) && shot !== B.SHOT.HIT;
-        cell.className = 'cell' + (shot ? ' ' + shot : '') + (reveal ? ' revealed' : '');
-        cell.style.background = reveal ? B.getShipType(shipId).color : '';
+        var cell = rivalCells[cellKey(row, col)];
+        var day = state.rivalBoard.days[row][col];
+        var parkId = state.revealRival ? state.rivalBoard.grid[row][col] : null;
+        var reveal = Boolean(parkId) && day !== B.DAY.TRAIL_MARKER;
+        cell.className = 'cell' + (day ? ' ' + day : '') + (reveal ? ' revealed' : '');
+        cell.style.background = reveal ? B.getPark(parkId).color : '';
       }
     }
-    els.enemyBoard.classList.toggle('disabled', state.phase !== PHASES.PLAYER_TURN);
-    els.enemyBoard.setAttribute('aria-disabled', String(state.phase !== PHASES.PLAYER_TURN));
+    els.rivalBoard.classList.toggle('disabled', state.phase !== PHASES.PLAYER_TURN);
+    els.rivalBoard.setAttribute('aria-disabled', String(state.phase !== PHASES.PLAYER_TURN));
   }
 
   function renderPreview() {
     if (state.phase !== PHASES.PLACEMENT) return;
-    if (!state.hover || !state.selectedShipId) return;
-    if (state.playerBoard.ships[state.selectedShipId]) return;
+    if (!state.hover || !state.selectedParkId) return;
+    if (state.playerBoard.parks[state.selectedParkId]) return;
 
-    var type = B.getShipType(state.selectedShipId);
+    var type = B.getPark(state.selectedParkId);
     var result = B.validatePlacement(
-      state.playerBoard, state.selectedShipId, state.hover.row, state.hover.col, state.orientation
+      state.playerBoard, state.selectedParkId, state.hover.row, state.hover.col, state.orientation
     );
-    var cells = B.shipCells(state.hover.row, state.hover.col, type.length, state.orientation);
+    var cells = B.parkCells(state.hover.row, state.hover.col, type.length, state.orientation);
 
     cells.forEach(function (pos) {
       var cell = playerCells[cellKey(pos.row, pos.col)];
@@ -167,29 +188,59 @@
     });
   }
 
-  function renderFleetStatus() {
+  /**
+   * Passports: one stamp slot per park, inked once every square of that park
+   * has been found. The passport under a map belongs to whoever is scouting
+   * that map — your rival scouts the route you drew, so their stamps sit
+   * under your map.
+   */
+  function renderPassports() {
     [
       { list: els.statusPlayer, board: state.playerBoard },
-      { list: els.statusEnemy, board: state.enemyBoard }
+      { list: els.statusRival, board: state.rivalBoard }
     ].forEach(function (side) {
       side.list.innerHTML = '';
-      B.SHIP_TYPES.forEach(function (type) {
+      B.PARKS.forEach(function (type) {
+        var stamped = B.isParkStamped(side.board, type.id);
         var item = document.createElement('li');
-        var sunk = B.isShipSunk(side.board, type.id);
-        item.className = 'status-ship' + (sunk ? ' sunk' : '');
-
-        var swatch = document.createElement('span');
-        swatch.className = 'swatch';
-        swatch.style.background = type.color;
-        item.appendChild(swatch);
+        item.className = 'stamp-slot' + (stamped ? ' stamped' : '');
+        item.style.setProperty('--park-color', type.color);
 
         var name = document.createElement('span');
-        name.textContent = type.name + ' (' + type.length + ')' + (sunk ? ' — sunk' : '');
+        name.className = 'stamp-name';
+        name.textContent = type.name;
         item.appendChild(name);
+
+        var detail = document.createElement('span');
+        detail.className = 'stamp-detail';
+        detail.textContent = type.length + ' cells · ' + acreage(type);
+        item.appendChild(detail);
+
+        if (stamped) {
+          var mark = document.createElement('span');
+          mark.className = 'stamp-mark';
+          mark.textContent = 'STAMPED';
+          item.appendChild(mark);
+        }
 
         side.list.appendChild(item);
       });
     });
+  }
+
+  /**
+   * The season clock: Tioga Pass is open for `SEASON_DAYS` trail days and
+   * every square scouted costs one, so days spent on the map drawn for you
+   * is the season so far.
+   */
+  function renderSeasonClock() {
+    var used = B.daysSpent(state.rivalBoard);
+    var rivalUsed = B.daysSpent(state.playerBoard);
+    els.daysUsed.textContent = String(used);
+    els.daysTotal.textContent = String(B.SEASON_DAYS);
+    els.daysLeft.textContent = String(B.daysLeft(state.rivalBoard));
+    els.rivalDaysUsed.textContent = String(rivalUsed);
+    els.clockFill.style.width = (used / B.SEASON_DAYS * 100) + '%';
   }
 
   function appendLogEntry(entry) {
@@ -233,211 +284,230 @@
     var placing = phase === PHASES.PLACEMENT;
     els.playerBoard.classList.toggle('disabled', !placing);
     els.placementControls.classList.toggle('hidden', !placing);
-    els.battleControls.classList.toggle('hidden', placing);
+    els.seasonControls.classList.toggle('hidden', placing);
     els.phaseLabel.textContent =
-      placing ? 'Place your fleet'
+      placing ? 'Route planning — draw your five parks'
         : phase === PHASES.OVER
-          ? (state.winner === 'player' ? 'Game over — you won' : 'Game over — you lost')
-          : phase === PHASES.PLAYER_TURN ? 'Your turn — fire at Enemy Waters'
-            : 'Opponent is taking their turn…';
+          ? (state.winner === 'player'
+            ? 'Season over — you collected the California Five'
+            : 'Season over — your rival finished first')
+          : phase === PHASES.PLAYER_TURN
+            ? 'Your scouting day — pick a square'
+            : 'Your rival is out scouting…';
     els.statusBar.className = 'status' +
       (phase === PHASES.PLAYER_TURN ? ' your-turn'
-        : phase === PHASES.OPPONENT_TURN ? ' waiting'
+        : phase === PHASES.RIVAL_TURN ? ' waiting'
           : phase === PHASES.OVER ? ' over' : '');
-    renderEnemyBoard();
+    renderRivalBoard();
   }
 
   function render() {
-    renderFleet();
+    renderParkCards();
     renderPlayerBoard();
-    renderEnemyBoard();
-    renderFleetStatus();
+    renderRivalBoard();
+    renderPassports();
+    renderSeasonClock();
     renderLog();
   }
 
   /* ---------- placement phase ---------- */
 
-  function firstUnplacedShipId() {
-    for (var i = 0; i < B.SHIP_TYPES.length; i++) {
-      if (!state.playerBoard.ships[B.SHIP_TYPES[i].id]) return B.SHIP_TYPES[i].id;
+  function firstUnplacedParkId() {
+    for (var i = 0; i < B.PARKS.length; i++) {
+      if (!state.playerBoard.parks[B.PARKS[i].id]) return B.PARKS[i].id;
     }
     return null;
   }
 
-  function selectShip(shipId) {
-    state.selectedShipId = shipId;
-    if (state.playerBoard.ships[shipId]) {
-      setMessage(B.getShipType(shipId).name + ' is already placed. Use Reset Placement to start over.', 'error');
+  function selectPark(parkId) {
+    state.selectedParkId = parkId;
+    if (state.playerBoard.parks[parkId]) {
+      setMessage(B.getPark(parkId).name + ' is already on your route. Use Clear Route to start over.', 'error');
     } else {
       setMessage('');
     }
-    renderFleet();
+    renderParkCards();
     renderPlayerBoard();
   }
 
   function updateStartButton() {
-    els.btnStart.disabled = !B.allShipsPlaced(state.playerBoard);
+    els.btnStart.disabled = !B.allParksPlaced(state.playerBoard);
   }
 
   function handlePlacementClick(row, col) {
-    var shipId = state.selectedShipId;
-    if (!shipId || state.playerBoard.ships[shipId]) {
-      var next = firstUnplacedShipId();
+    var parkId = state.selectedParkId;
+    if (!parkId || state.playerBoard.parks[parkId]) {
+      var next = firstUnplacedParkId();
       if (!next) {
-        setMessage('All ships are placed. Press Start Game.', 'info');
+        setMessage('All five parks are on your route. Seal and trade.', 'info');
         return;
       }
-      shipId = next;
-      state.selectedShipId = next;
+      parkId = next;
+      state.selectedParkId = next;
     }
 
-    var result = B.placeShip(state.playerBoard, shipId, row, col, state.orientation);
+    var result = B.placePark(state.playerBoard, parkId, row, col, state.orientation);
     if (!result.success) {
       setMessage(result.reason, 'error');
-      renderFleet();
+      renderParkCards();
       renderPlayerBoard();
       return;
     }
 
-    setMessage(B.getShipType(shipId).name + ' placed at ' + B.coordLabel(row, col) + '.', 'info');
-    state.selectedShipId = firstUnplacedShipId();
-    renderFleet();
+    setMessage(B.getPark(parkId).name + ' penciled in at ' + B.coordLabel(row, col) + '.', 'info');
+    state.selectedParkId = firstUnplacedParkId();
+    renderParkCards();
     renderPlayerBoard();
     updateStartButton();
-    if (!state.selectedShipId) setMessage('Fleet ready. Press Start Game.', 'info');
+    if (!state.selectedParkId) setMessage('Route complete. Seal and trade.', 'info');
   }
 
   function setOrientation(orientation) {
     state.orientation = orientation;
     els.orientationLabel.textContent =
-      orientation === B.ORIENTATIONS.HORIZONTAL ? 'Horizontal' : 'Vertical';
+      orientation === B.ORIENTATIONS.HORIZONTAL ? 'Across' : 'Down';
     renderPlayerBoard();
   }
 
-  /* ---------- battle phase ---------- */
+  /* ---------- season phase ---------- */
 
-  function describeShot(shooter, row, col, result) {
+  /** Themed field-note copy for one scouting day. */
+  function describeDay(scout, row, col, result) {
+    var who = scout === 'player' ? 'You scouted ' : 'Your rival scouted ';
     var where = B.coordLabel(row, col);
-    if (result.result === B.SHOT.MISS) {
-      return (shooter === 'player' ? 'You fired at ' : 'Opponent fired at ') + where + '. Miss.';
+    if (result.result === B.DAY.DEAD_END) {
+      return who + where + '. Dead end — a day burned on a forest road.';
     }
-    var hit = (shooter === 'player' ? 'You fired at ' : 'Opponent fired at ') +
-      where + '. Hit. ' + result.shipName + '.';
-    if (result.sunk) {
-      hit += shooter === 'player'
-        ? ' You sank my ' + result.shipName + '!'
-        : ' Opponent sank your ' + result.shipName + '!';
+    var note = who + where + '. Trail marker — ' +
+      (scout === 'player' ? "you're" : "they're") + ' on the route. ' +
+      result.parkName + '.';
+    if (result.stamped) {
+      note += scout === 'player'
+        ? ' ' + result.parkName + ' stamped in your passport!'
+        : ' They stamped ' + result.parkName + '!';
     }
-    return hit;
+    return note;
   }
 
   function startGame() {
-    if (!B.allShipsPlaced(state.playerBoard)) return;
-    B.clearBoard(state.enemyBoard);
-    B.placeFleetRandomly(state.enemyBoard);
+    if (!B.allParksPlaced(state.playerBoard)) return;
+    B.clearBoard(state.rivalBoard);
+    B.placeRouteRandomly(state.rivalBoard);
     state.hover = null;
     state.winner = null;
-    state.revealEnemy = false;
+    state.revealRival = false;
     state.log = [];
     els.howTo.classList.add('hidden');
+    els.intro.classList.add('hidden');
     els.btnReveal.classList.add('hidden');
-    addLog('system', 'Battle stations. You have the first shot.');
+    addLog('system', 'Routes sealed and traded. Tioga Pass is open for ' +
+      B.SEASON_DAYS + ' trail days. You take the first scouting day.');
     setPhase(PHASES.PLAYER_TURN);
-    setMessage('Your turn. Fire at Enemy Waters.', 'info');
+    setMessage('Your scouting day. Pick a square on the route drawn for you.', 'info');
     render();
   }
 
   function endGame(winner) {
     state.winner = winner;
     setPhase(PHASES.OVER);
+    var days = B.daysSpent(winner === 'player' ? state.rivalBoard : state.playerBoard);
     var text = winner === 'player'
-      ? 'You win! The enemy fleet is sunk.'
-      : 'You lose. Your fleet is sunk.';
+      ? 'The California Five! All five parks stamped in ' + days + ' trail days.'
+      : 'Your rival finished their itinerary first, in ' + days + ' trail days.';
     addLog('system', text);
     setMessage(text, (winner === 'player' ? 'info' : 'error') + ' result');
     els.btnReveal.classList.toggle('hidden', winner === 'player');
-    els.btnReveal.textContent = 'Reveal Enemy Ship Locations';
+    els.btnReveal.textContent = 'Reveal the Route You Missed';
     render();
   }
 
-  function handleEnemyClick(row, col) {
+  function handleRivalClick(row, col) {
     if (state.phase !== PHASES.PLAYER_TURN) return;
-    if (!B.canFireAt(state.enemyBoard, row, col)) return;
+    if (!B.canScout(state.rivalBoard, row, col)) return;
 
-    var result = B.fireAt(state.enemyBoard, row, col);
-    addLog('player', describeShot('player', row, col, result));
+    var result = B.scout(state.rivalBoard, row, col);
+    addLog('player', describeDay('player', row, col, result));
     setMessage(
-      result.result === B.SHOT.HIT
-        ? 'Hit. ' + result.shipName + '.' + (result.sunk ? ' You sank my ' + result.shipName + '!' : '')
-        : 'Miss.',
-      result.result === B.SHOT.HIT ? 'info' : null
+      result.result === B.DAY.TRAIL_MARKER
+        ? "Trail marker. You're on the route — " + result.parkName + '.' +
+          (result.stamped ? ' ' + result.parkName + ' stamped!' : '')
+        : 'Dead end. You burned a day on a forest road.',
+      result.result === B.DAY.TRAIL_MARKER ? 'info' : null
     );
-    renderEnemyBoard();
-    renderFleetStatus();
+    renderRivalBoard();
+    renderPassports();
+    renderSeasonClock();
 
-    if (result.fleetDefeated) {
+    if (result.routeComplete) {
       endGame('player');
       return;
     }
 
-    setPhase(PHASES.OPPONENT_TURN);
-    setMessage('Opponent is taking their turn…', null);
-    window.setTimeout(takeOpponentTurn, OPPONENT_DELAY_MS);
+    setPhase(PHASES.RIVAL_TURN);
+    setMessage('Your rival is out scouting…', null);
+    window.setTimeout(takeRivalTurn, RIVAL_DELAY_MS);
   }
 
-  function takeOpponentTurn() {
-    var target = B.chooseOpponentTarget(state.playerBoard);
+  function takeRivalTurn() {
+    var target = B.chooseRivalSquare(state.playerBoard);
     if (!target) {
       setPhase(PHASES.PLAYER_TURN);
       return;
     }
 
-    var result = B.fireAt(state.playerBoard, target.row, target.col);
-    addLog('opponent', describeShot('opponent', target.row, target.col, result));
+    var result = B.scout(state.playerBoard, target.row, target.col);
+    addLog('rival', describeDay('rival', target.row, target.col, result));
     renderPlayerBoard();
-    renderFleetStatus();
+    renderPassports();
+    renderSeasonClock();
 
-    if (result.fleetDefeated) {
-      endGame('opponent');
+    if (result.routeComplete) {
+      endGame('rival');
       return;
     }
 
     setPhase(PHASES.PLAYER_TURN);
     setMessage(
-      result.result === B.SHOT.HIT
-        ? 'Opponent hit your ' + result.shipName + '.' +
-          (result.sunk ? ' Opponent sank your ' + result.shipName + '!' : '') + ' Your turn.'
-        : 'Opponent missed. Your turn.',
-      result.result === B.SHOT.HIT ? 'error' : 'info'
+      result.result === B.DAY.TRAIL_MARKER
+        ? 'Your rival found ' + result.parkName + ' on your route.' +
+          (result.stamped ? ' They stamped ' + result.parkName + '!' : '') +
+          ' Your scouting day.'
+        : 'Your rival reached a dead end. Your scouting day.',
+      result.result === B.DAY.TRAIL_MARKER ? 'error' : 'info'
     );
   }
 
   function newGame() {
     B.clearBoard(state.playerBoard);
-    B.clearBoard(state.enemyBoard);
-    state.selectedShipId = B.SHIP_TYPES[0].id;
+    B.clearBoard(state.rivalBoard);
+    state.selectedParkId = B.PARKS[0].id;
     state.orientation = B.ORIENTATIONS.HORIZONTAL;
     state.hover = null;
     state.log = [];
     state.winner = null;
-    state.revealEnemy = false;
+    state.revealRival = false;
     els.btnReveal.classList.add('hidden');
     setPhase(PHASES.PLACEMENT);
     setOrientation(state.orientation);
     updateStartButton();
-    setMessage('New game. Place your fleet.', 'info');
+    setMessage('New season. Draw your route.', 'info');
     render();
   }
 
   /* ---------- wiring ---------- */
 
+  function openHowTo() {
+    els.howTo.classList.remove('hidden');
+    els.howTo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function init() {
     buildGrid(els.playerBoard, playerCells);
-    buildGrid(els.enemyBoard, enemyCells);
+    buildGrid(els.rivalBoard, rivalCells);
     setPhase(PHASES.PLACEMENT);
     setOrientation(state.orientation);
     updateStartButton();
-    setMessage('Place all five ships to begin.', 'info');
+    setMessage('Lay all five parks on your route to begin.', 'info');
     render();
 
     els.playerBoard.addEventListener('mouseover', function (event) {
@@ -460,10 +530,10 @@
       handlePlacementClick(Number(target.dataset.row), Number(target.dataset.col));
     });
 
-    els.enemyBoard.addEventListener('click', function (event) {
+    els.rivalBoard.addEventListener('click', function (event) {
       var target = event.target;
       if (!target.classList.contains('cell')) return;
-      handleEnemyClick(Number(target.dataset.row), Number(target.dataset.col));
+      handleRivalClick(Number(target.dataset.row), Number(target.dataset.col));
     });
 
     document.addEventListener('keydown', function (event) {
@@ -474,42 +544,52 @@
     });
 
     els.btnRandom.addEventListener('click', function () {
-      if (B.placeFleetRandomly(state.playerBoard)) {
-        state.selectedShipId = null;
-        setMessage('Fleet placed randomly. Press Start Game.', 'info');
+      if (B.placeRouteRandomly(state.playerBoard)) {
+        state.selectedParkId = null;
+        setMessage('Random route drawn. Seal and trade.', 'info');
       } else {
-        setMessage('Could not generate a random placement. Try again.', 'error');
+        setMessage('Could not draw a random route. Try again.', 'error');
       }
-      renderFleet();
+      renderParkCards();
       renderPlayerBoard();
       updateStartButton();
     });
 
     els.btnReset.addEventListener('click', function () {
       B.clearBoard(state.playerBoard);
-      state.selectedShipId = B.SHIP_TYPES[0].id;
-      setMessage('Board cleared.', 'info');
-      renderFleet();
+      state.selectedParkId = B.PARKS[0].id;
+      setMessage('Route cleared.', 'info');
+      renderParkCards();
       renderPlayerBoard();
       updateStartButton();
     });
 
     els.btnReveal.addEventListener('click', function () {
       if (state.phase !== PHASES.OVER) return;
-      state.revealEnemy = !state.revealEnemy;
-      els.btnReveal.textContent = state.revealEnemy
-        ? 'Hide Enemy Ship Locations'
-        : 'Reveal Enemy Ship Locations';
-      renderEnemyBoard();
+      state.revealRival = !state.revealRival;
+      els.btnReveal.textContent = state.revealRival
+        ? 'Hide the Route You Missed'
+        : 'Reveal the Route You Missed';
+      renderRivalBoard();
     });
 
     els.btnHowToClose.addEventListener('click', function () {
       els.howTo.classList.add('hidden');
     });
 
-    els.btnHowToOpen.addEventListener('click', function () {
-      els.howTo.classList.remove('hidden');
-      els.howTo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    els.btnHowToOpen.addEventListener('click', openHowTo);
+
+    els.btnIntroClose.addEventListener('click', function () {
+      els.intro.classList.add('hidden');
+    });
+
+    els.btnIntroHowTo.addEventListener('click', function () {
+      els.intro.classList.add('hidden');
+      openHowTo();
+    });
+
+    els.btnIntroOpen.addEventListener('click', function () {
+      els.intro.classList.remove('hidden');
     });
 
     els.btnStart.addEventListener('click', startGame);
