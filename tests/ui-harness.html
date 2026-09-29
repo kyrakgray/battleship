@@ -87,6 +87,19 @@
       voiceLines.briefing);
     check('the ranger calls the sealed itinerary',
       voiceLines.sealed === 'Signed, sealed, and delivered.', voiceLines.sealed);
+    check('the ranger sends the explorer off to draw a route',
+      /draw your route/.test(voiceLines.planning || ''), voiceLines.planning);
+    check('the ranger opens the season with the winter coming',
+      /Game on/.test(voiceLines['game-on'] || '') &&
+      /El Nino winter/.test(voiceLines['game-on'] || ''), voiceLines['game-on']);
+    check('the ranger calls a last park left for each explorer',
+      /one park left/.test(voiceLines['last-park-you'] || '') &&
+      /one more park left/.test(voiceLines['last-park-rival'] || ''));
+    check('the ranger reads the season card and asks for another summer',
+      /season card/.test(voiceLines['result-win'] || '') &&
+      /next summer/.test(voiceLines['result-win'] || '') &&
+      /season card/.test(voiceLines['result-loss'] || '') &&
+      /another summer/.test(voiceLines['result-loss'] || ''));
     ['death-valley', 'joshua-tree', 'yosemite', 'kings-canyon', 'sequoia']
       .forEach(function (id) {
         check('the ranger has a line for both explorers finding ' + id,
@@ -139,6 +152,8 @@
     $('btn-how-to-close').click();
     check('how-to closes on "Enter the Classic"',
       $('how-to').classList.contains('hidden') && $('intro').classList.contains('hidden'));
+    check('the route-drawing stage is spoken over',
+      spoken.indexOf('planning') !== -1, spoken.join(','));
 
     $('btn-intro-open').click();
     check('the story reopens during the Classic',
@@ -201,6 +216,13 @@
       d.querySelector('.boards').contains($('rival-passport')) &&
       $('player-passport').contains($('status-player')) &&
       $('rival-passport').contains($('status-rival')));
+    check('New Season sits above the two window links',
+      $('btn-new-game').parentNode.contains($('btn-intro-open')) &&
+      $('btn-new-game').parentNode.contains($('btn-how-to-open')) &&
+      $('btn-new-game').getBoundingClientRect().bottom <=
+        $('btn-intro-open').getBoundingClientRect().top + 1);
+    check('voice scouting is hidden while the route is being drawn',
+      !visible($('voice-bar')));
     check('the season strip carries no second instruction line',
       $('season-controls').querySelectorAll('.hint').length === 0);
     check('passports stay closed until the season starts',
@@ -241,6 +263,36 @@
     check('the log and calendar appear once the season starts',
       visible(d.querySelector('.log-panel')) && visible($('season-clock')) &&
       visible($('rival-wrap')));
+
+    check('the season opens with the ranger calling it on',
+      spoken.indexOf('game-on') !== -1, spoken.join(','));
+    check('the voice control wears an ear',
+      !!$('btn-voice-scout').querySelector('use[href="#icon-ear"]') &&
+      !!d.getElementById('icon-ear'));
+    check('the voice control has its own colour',
+      w.getComputedStyle($('btn-voice-scout')).backgroundColor !==
+        w.getComputedStyle($('btn-new-game')).backgroundColor);
+    if (w.innerWidth > 820) {
+      var voiceBox = $('voice-bar').getBoundingClientRect();
+      var trackerBox = $('tracker').getBoundingClientRect();
+      check('voice scouting lines up above the calendar tracker',
+        Math.abs(voiceBox.left - trackerBox.left) < 2 &&
+        voiceBox.bottom <= trackerBox.top + 1,
+        voiceBox.left + ' vs ' + trackerBox.left);
+    }
+    // Squeeze the page to a phone width: everything goes single file, and
+    // the voice control has to land directly above the rival's map.
+    frame.width = '420';
+    var narrowVoice = $('voice-bar').getBoundingClientRect();
+    var narrowRival = $('rival-wrap').getBoundingClientRect();
+    var narrowTracker = $('tracker').getBoundingClientRect();
+    check('single file puts voice scouting right above the rival map',
+      narrowVoice.top >= narrowTracker.bottom - 1 &&
+      narrowVoice.bottom <= narrowRival.top + 1,
+      'voice ' + Math.round(narrowVoice.top) + '-' + Math.round(narrowVoice.bottom) +
+        ', tracker ends ' + Math.round(narrowTracker.bottom) +
+        ', rival map at ' + Math.round(narrowRival.top));
+    frame.width = '1200';
 
     check('rival map is live after sealing',
       !$('rival-board').classList.contains('disabled'));
@@ -466,6 +518,12 @@
           .length > 1);
       check('a stamped park brings the stamp down',
         cues.indexOf('stamp') !== -1);
+      check('the last park left is called out',
+        spoken.indexOf('last-park-you') !== -1 ||
+        spoken.indexOf('last-park-rival') !== -1, spoken.join(','));
+      check('the ranger reads the result over the season card',
+        spoken.indexOf('result-win') !== -1 || spoken.indexOf('result-loss') !== -1,
+        spoken.join(','));
       check('a stamped park is called by name',
         spoken.some(function (key) { return /^found-(you|rival)-/.test(key); }),
         spoken.join(','));

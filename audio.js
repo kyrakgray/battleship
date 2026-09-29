@@ -16,7 +16,21 @@
   var LINES = {
     welcome: 'Welcome to The California National Park Summer Classic.',
     briefing: "Before you draw your route, here is a ranger's briefing on how to play.",
-    sealed: 'Signed, sealed, and delivered.'
+    planning: 'Before the race can begin, draw your route for your rival to scout ' +
+      'over the course of this summer.',
+    sealed: 'Signed, sealed, and delivered.',
+    'game-on': 'Game on! May the best explorer win. Find your route before the ' +
+      'El Nino winter arrives.',
+    'last-park-you': 'You have only one park left to find! Keep scouting to beat ' +
+      'your rival and win the race!',
+    'last-park-rival': 'Your rival has one more park left to find. Now you must ' +
+      'choose carefully to win the race.',
+    'result-win': 'You took the Classic — all five stamps are in your passport. ' +
+      "Here is your season card. Care to run it again next summer? Don't let it " +
+      'go to your head, champ. Even a blind marmot finds a trail marker now and then.',
+    'result-loss': 'Your rival collected the California Five first. Here is your ' +
+      'season card. Want another summer? Look at it this way — nobody out here ' +
+      'walks that many forest roads by accident. That takes real talent.'
   };
   ['death-valley', 'joshua-tree', 'yosemite', 'kings-canyon', 'sequoia']
     .forEach(function (id) {
@@ -142,18 +156,20 @@
     /** A pencil laying a park down on the paper map, stroke by stroke. */
     draw: function () {
       [
-        { delay: 0.00, length: 0.13, frequency: 3800 },
-        { delay: 0.12, length: 0.09, frequency: 3100 },
-        { delay: 0.21, length: 0.15, frequency: 4400 },
-        { delay: 0.35, length: 0.08, frequency: 3400 }
+        { delay: 0.00, length: 0.13, frequency: 1500 },
+        { delay: 0.12, length: 0.09, frequency: 1150 },
+        { delay: 0.21, length: 0.15, frequency: 1750 },
+        { delay: 0.35, length: 0.08, frequency: 1300 }
       ].forEach(function (stroke) {
         noise({
           delay: stroke.delay, length: stroke.length, frequency: stroke.frequency,
-          q: 0.6, peak: 0.5, envelope: graphite
+          q: 0.5, peak: 0.42, envelope: graphite
         });
+        // A soft-leaded pencil is felt as much as heard: the body of each
+        // stroke sits well below the grain.
         noise({
-          delay: stroke.delay, length: stroke.length, frequency: 600,
-          filter: 'lowpass', peak: 0.12, envelope: graphite
+          delay: stroke.delay, length: stroke.length, frequency: 260,
+          filter: 'lowpass', peak: 0.34, envelope: graphite
         });
       });
     },
@@ -180,6 +196,7 @@
 
   var clips = {};
   var voiceNow = null;
+  var queued = null;
 
   function clipFor(key) {
     if (!clips[key]) {
@@ -230,12 +247,30 @@
     },
 
     stopVoice: function () {
+      queued = null;
       if (voiceNow) {
         voiceNow.pause();
         voiceNow.currentTime = 0;
         voiceNow = null;
       }
       if (window.speechSynthesis) window.speechSynthesis.cancel();
+    },
+
+    /** Follow the line already playing rather than cutting it off. */
+    sayAfter: function (key) {
+      if (!prefs.voice || !LINES[key]) return;
+      if (!voiceNow || voiceNow.paused || voiceNow.ended) {
+        api.say(key);
+        return;
+      }
+      queued = key;
+      var playing = voiceNow;
+      playing.addEventListener('ended', function once() {
+        playing.removeEventListener('ended', once);
+        if (queued !== key) return;
+        queued = null;
+        api.say(key);
+      });
     },
 
     say: function (key) {

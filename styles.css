@@ -52,7 +52,14 @@ main {
   align-items: center;
   gap: 10px 16px;
 }
-.controls .buttons.secondary { margin-left: auto; }
+/* New Season sits above the two window links, off to the right. */
+.controls .secondary {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
 
 /* Once the season is running the top bar is only a thin strip of links:
    the instruction line lives in the tracker, so nothing is repeated. */
@@ -65,21 +72,41 @@ body:not(.planning) .controls {
 }
 body:not(.planning) .season-controls:not(.hidden) { flex: 0 1 auto; }
 
-/* Scouting by voice: the button says whether the microphone is open. */
+/* Scouting by voice: its own colour, and the button says whether the
+   microphone is open. */
+.voice-bar {
+  grid-area: voice;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+body.planning .voice-bar,
+body.planning #btn-new-game { display: none; }
+.voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #8a5a2b;
+  border-color: #b98a51;
+  color: #fdf6e8;
+}
+.voice-btn:hover:not([disabled]) { background: #9c6832; }
+.voice-ear { width: 19px; height: 19px; }
 #btn-voice-scout.listening {
-  border-color: var(--marker, #2f7d4f);
-  box-shadow: 0 0 0 2px rgba(47, 125, 79, 0.25);
+  background: #2f7d4f;
+  border-color: #7fc79b;
+  box-shadow: 0 0 0 2px rgba(47, 125, 79, 0.3);
 }
 #btn-voice-scout[disabled] { opacity: 0.55; cursor: not-allowed; }
 .voice-heard {
-  flex: 1 1 100%;
   margin: 0;
   font-size: 12px;
   color: var(--trail);
 }
 .voice-heard:empty { display: none; }
 .voice-heard.error { color: var(--dead-end, #a8442a); }
-body:not(.planning) .controls .buttons.secondary { margin-left: 0; }
+body:not(.planning) .controls .secondary { margin-left: auto; }
 body:not(.planning) .controls button { padding: 5px 11px; font-size: 13px; }
 body:not(.planning) .controls .link-btn { margin-top: 0; padding: 0; }
 body:not(.planning) main { gap: 14px; }
@@ -91,9 +118,15 @@ body:not(.planning) .tagline { display: none; }
 .field-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "log voice"
+    "log tracker";
   align-items: stretch;
-  gap: 16px;
+  gap: 10px 16px;
 }
+.log-panel { grid-area: log; }
+.tracker { grid-area: tracker; }
 /* Status line and calendar live in one panel, matching the log's height. */
 .tracker {
   display: flex;
@@ -110,7 +143,10 @@ body:not(.planning) .tagline { display: none; }
 .tracker.waiting { border-left-color: var(--trail); }
 .tracker.over { border-left-color: #c0392b; }
 body.planning .tracker { border-left-width: 1px; }
-body.planning .field-row { grid-template-columns: minmax(0, 1fr); }
+body.planning .field-row {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "log" "tracker";
+}
 
 /* The story window hands off to how to play, which opens the Classic. */
 .how-to-steps { margin: 4px 0 18px; padding-left: 20px; }
@@ -430,9 +466,13 @@ body.planning .boards {
 /* The planning map: paper over a greyed-back state flag. */
 .map-flag { display: none; }
 
+/* Single file: the voice button drops to just above the rival's map. */
 @media (max-width: 820px) {
-  .field-row { grid-template-columns: minmax(0, 1fr); }
-  .controls .buttons.secondary { margin-left: 0; }
+  .field-row {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "log" "tracker" "voice";
+  }
+  .controls .secondary { margin-left: 0; align-items: flex-start; }
   :root { --cell: 30px; }
 }
 body.planning .player-wrap {

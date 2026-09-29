@@ -540,6 +540,7 @@
   function startGame() {
     if (!B.allParksPlaced(state.playerBoard)) return;
     els.seal.classList.add('hidden');
+    sound.sayAfter('game-on');
     B.clearBoard(state.rivalBoard);
     B.placeRouteRandomly(state.rivalBoard);
     state.hover = null;
@@ -631,6 +632,7 @@
     });
 
     els.gameOver.classList.remove('hidden');
+    sound.say(wonByPlayer ? 'result-win' : 'result-loss');
   }
 
   /** The result called over the maps, held there before the season card. */
@@ -667,6 +669,7 @@
 
     var result = B.scout(state.rivalBoard, row, col);
     playDaySound('player', result);
+    callLastPark('player', result);
     addLog('player', describeDay('player', row, col, result), playerDaysSpent());
     setMessage(
       result.result === B.DAY.TRAIL_MARKER
@@ -698,6 +701,7 @@
 
     var result = B.scout(state.playerBoard, target.row, target.col);
     playDaySound('rival', result);
+    callLastPark('rival', result);
     addLog('rival', describeDay('rival', target.row, target.col, result),
       rivalDaysSpent());
     renderPlayerBoard();
@@ -741,10 +745,17 @@
     setOrientation(state.orientation);
     updateStartButton();
     setMessage('New season. Draw your route.', 'info');
+    sound.say('planning');
     render();
   }
 
   /* ---------- wiring ---------- */
+
+  /** The route-drawing stage the how-to window hands the explorer into. */
+  function openPlanning() {
+    els.howTo.classList.add('hidden');
+    if (state.phase === PHASES.PLACEMENT) sound.say('planning');
+  }
 
   function openHowTo() {
     els.intro.classList.add('hidden');
@@ -768,6 +779,14 @@
     if (!result.stamped) return;
     sound.effect('stamp');
     sound.say('found-' + (scout === 'player' ? 'you' : 'rival') + '-' + result.parkId);
+  }
+
+  /** Called once, the moment an explorer is down to their last park. */
+  function callLastPark(scout, result) {
+    if (!result.stamped || result.routeComplete) return;
+    var board = scout === 'player' ? state.rivalBoard : state.playerBoard;
+    if (B.stampedParkIds(board).length !== B.PARKS.length - 1) return;
+    sound.sayAfter(scout === 'player' ? 'last-park-you' : 'last-park-rival');
   }
 
   /* ---------- scouting by voice ---------- */
@@ -908,9 +927,7 @@
 
     // The story window leads into how to play, and that window is the one
     // that drops you into the Classic. Both stay reachable mid-season.
-    els.btnHowToClose.addEventListener('click', function () {
-      els.howTo.classList.add('hidden');
-    });
+    els.btnHowToClose.addEventListener('click', openPlanning);
 
     els.btnHowToBack.addEventListener('click', openStory);
 
