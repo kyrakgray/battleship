@@ -134,6 +134,8 @@
       d.querySelector('.boards').contains($('rival-passport')) &&
       $('player-passport').contains($('status-player')) &&
       $('rival-passport').contains($('status-rival')));
+    check('the season strip carries no second instruction line',
+      $('season-controls').querySelectorAll('.hint').length === 0);
     check('passports stay closed until the season starts',
       d.querySelectorAll('.passport-book').length === 2 &&
       !visible(d.querySelector('.passport-book')));
@@ -166,6 +168,11 @@
 
     check('rival map is live after sealing',
       !$('rival-board').classList.contains('disabled'));
+    if (w.innerWidth >= 760) {
+      check('the route drawn for you sits left of the route you drew',
+        $('rival-wrap').getBoundingClientRect().left <
+          $('player-wrap').getBoundingClientRect().left);
+    }
     check('passport slots rendered for both explorers',
       $('status-player').children.length === 5 && $('status-rival').children.length === 5);
     check('passport shows acreage',

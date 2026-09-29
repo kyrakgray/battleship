@@ -52,8 +52,25 @@ main {
   align-items: center;
   gap: 10px 16px;
 }
-.season-controls .hint { margin: 0; }
 .controls .buttons.secondary { margin-left: auto; }
+
+/* Once the season is running the top bar is only a thin strip of links:
+   the instruction line lives in the tracker, so nothing is repeated. */
+body:not(.planning) .controls {
+  gap: 8px 14px;
+  padding: 0;
+  background: none;
+  border: none;
+  justify-content: flex-end;
+}
+body:not(.planning) .season-controls:not(.hidden) { flex: 0 1 auto; }
+body:not(.planning) .controls .buttons.secondary { margin-left: 0; }
+body:not(.planning) .controls button { padding: 5px 11px; font-size: 13px; }
+body:not(.planning) .controls .link-btn { margin-top: 0; padding: 0; }
+body:not(.planning) main { gap: 14px; }
+body:not(.planning) header { margin-bottom: 12px; }
+body:not(.planning) h1 { font-size: 26px; }
+body:not(.planning) .tagline { display: none; }
 
 /* Log and season tracker share a row; they stack on narrow screens. */
 .field-row {
@@ -181,10 +198,10 @@ kbd {
   gap: 16px 18px;
   grid-template-columns: minmax(0, auto);
   grid-template-areas:
-    "player-map"
-    "player-pass"
     "rival-map"
-    "rival-pass";
+    "rival-pass"
+    "player-map"
+    "player-pass";
 }
 #player-wrap { grid-area: player-map; }
 #player-passport { grid-area: player-pass; }
@@ -200,17 +217,17 @@ kbd {
   .boards {
     grid-template-columns: auto auto;
     grid-template-areas:
-      "player-map rival-map"
-      "player-pass rival-pass";
+      "rival-map player-map"
+      "rival-pass player-pass";
   }
 }
 
-/* Widest: rival's passport, your route, the route drawn for you, your
-   passport — all on one level. */
+/* Widest: your passport, the route drawn for you, the route you drew,
+   your rival's passport — all on one level. */
 @media (min-width: 1360px) {
   .boards {
     grid-template-columns: auto auto auto auto;
-    grid-template-areas: "player-pass player-map rival-map rival-pass";
+    grid-template-areas: "rival-pass rival-map player-map player-pass";
   }
   .boards .passport-book { width: 256px; }
   .boards .stamp-slot { padding-right: 112px; }
