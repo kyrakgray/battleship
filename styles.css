@@ -692,10 +692,10 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
 /* The ranger who gives the briefing, standing in the window's top corner. */
 .ranger-portrait {
   flex: none;
-  width: 68px;
+  width: 66px;
   height: auto;
   align-self: flex-start;
-  margin: -6px 0 -12px;
+  margin: -20px 0 10px;
 }
 
 .intro-arrowhead {

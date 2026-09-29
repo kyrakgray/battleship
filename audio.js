@@ -29,14 +29,15 @@
       'your rival and win the race!',
     'last-park-rival': 'Your rival has one more park left to find. Now you must ' +
       'choose carefully to win the race.',
-    'result-win': 'You won! You found all the California Five parks before your ' +
-      'rival in',
-    'result-win-end': 'days. Now you may review your winning race, or play a new ' +
-      'season at a chance to beat your rival again.',
-    'result-loss': 'Your rival won. They found all the California Five parks ' +
-      'first in',
-    'result-loss-end': 'days. Now, you may review this race to see where you went ' +
-      'wrong, or play a new season for a chance to beat your rival.'
+    'result-win': 'Well, look at that. You stamped all five of the California ' +
+      'Five in',
+    'result-win-end': "days... beat your rival fair and square. Take a minute " +
+      "to review your winning race, or head out on a new season and make 'em " +
+      'suffer again.',
+    'result-loss': 'Your rival got there first. All five parks in',
+    'result-loss-end': 'days, while you were still squinting at a map. Go on ' +
+      'and review the race to see where you went wrong, or start a new season ' +
+      'and get even.'
   };
   // Every day count a season can end on: seventeen squares is the fewest that
   // can hold all five parks, and the season closes at a hundred.
@@ -167,7 +168,7 @@
     /** A pencil laying a park down on the paper map: a recorded stroke. */
     draw: function () {
       if (!pencil) {
-        pencil = new window.Audio('sfx/pencil.mp3?v=28');
+        pencil = new window.Audio('sfx/pencil.mp3?v=29');
         pencil.preload = 'auto';
       }
       pencil.currentTime = 0;

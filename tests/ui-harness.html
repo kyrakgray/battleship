@@ -24,6 +24,8 @@
   }
 
   function finish() {
+    lines.filter(function (line) { return line.indexOf('FAIL') === 0; })
+      .forEach(function (line) { lines.push('> ' + line); });
     lines.push(failures === 0 ? 'UI SMOKE RUN PASSED' : failures + ' UI CHECK(S) FAILED');
     document.getElementById('out').textContent = lines.join('\n');
   }
@@ -103,15 +105,15 @@
       /one park left/.test(voiceLines['last-park-you'] || '') &&
       /one more park left/.test(voiceLines['last-park-rival'] || ''));
     check('the ranger reads the result around the day count',
-      /^You won! You found all the California Five parks before your rival in$/
+      /^Well, look at that\. You stamped all five of the California Five in$/
         .test(voiceLines['result-win'] || '') &&
-      /^Your rival won\. They found all the California Five parks first in$/
+      /^Your rival got there first\. All five parks in$/
         .test(voiceLines['result-loss'] || ''),
       voiceLines['result-win'] + ' / ' + voiceLines['result-loss']);
     check('the read-out offers a review of the race or a new season',
-      /^days\. Now you may review your winning race, or play a new season/
+      /^days\.\.\. beat your rival fair and square\. Take a minute to review your/
         .test(voiceLines['result-win-end'] || '') &&
-      /^days\. Now, you may review this race to see where you went wrong, or play/
+      /^days, while you were still squinting at a map\. Go on and review the race/
         .test(voiceLines['result-loss-end'] || ''),
       voiceLines['result-win-end'] + ' / ' + voiceLines['result-loss-end']);
     function served(path) {
