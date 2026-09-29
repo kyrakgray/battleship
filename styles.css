@@ -325,19 +325,39 @@ body.planning .season-clock,
 body.planning #rival-wrap,
 body.planning .passport-book { display: none; }
 
-/* The planning map: paper, contour washes and a pencilled grid. */
+/* The planning map: paper over a greyed-back state flag. */
+.map-flag { display: none; }
 body.planning .player-wrap {
+  position: relative;
+  overflow: hidden;
   padding: 18px 20px 22px;
   border: 1px solid #b9a882;
   border-radius: 12px;
-  background:
-    radial-gradient(circle at 22% 28%, rgba(120, 150, 110, 0.25) 0 14%, transparent 14.5%),
-    radial-gradient(circle at 22% 28%, rgba(120, 150, 110, 0.22) 0 22%, transparent 22.5%),
-    radial-gradient(circle at 74% 66%, rgba(150, 130, 90, 0.22) 0 16%, transparent 16.5%),
-    radial-gradient(circle at 74% 66%, rgba(150, 130, 90, 0.18) 0 26%, transparent 26.5%),
-    linear-gradient(180deg, #f2e7c9, #e4d5ad);
+  background: linear-gradient(180deg, #f2e7c9, #e4d5ad);
   color: #3b3323;
   box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.25), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+body.planning .player-wrap .map-flag {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: auto;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+.flag-field { fill: #cfcabb; }
+.flag-stripe { fill: #7a7167; }
+.flag-star { fill: #6f675c; }
+.flag-bear { fill: #6f675c; }
+.flag-words {
+  fill: #6f675c;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  letter-spacing: 2px;
 }
 body.planning .player-wrap h2 {
   font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
@@ -399,32 +419,27 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
   top: 50%;
   left: 50%;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #c2472f, #8d2416 62%, #6d180d);
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.18),
-    inset 0 -4px 10px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.5);
-  color: #f7e6d2;
-  transform: translate(-50%, -50%) rotate(-6deg);
+  width: 112px;
+  height: 112px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+  transform: translate(-50%, -50%) rotate(-5deg);
 }
-.wax-bear {
-  width: 58px;
-  height: 34px;
-  fill: currentColor;
-  opacity: 0.92;
+.wax-blob { fill: #9d2c1a; }
+.wax-ring {
+  fill: none;
+  stroke: rgba(255, 224, 205, 0.32);
+  stroke-width: 1.4;
 }
 .wax-text {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
+  fill: #f7e0d0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-anchor: middle;
   text-transform: uppercase;
 }
+.wax-state { fill: rgba(60, 12, 4, 0.55); }
 
 /* Result window: the season card for both explorers. */
 .result-window { max-width: 560px; }
@@ -452,6 +467,31 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
 .result-table td { font-variant-numeric: tabular-nums; }
 #game-over .intro { border-color: #3fa34d; }
 #game-over.lost .intro { border-color: #c0392b; }
+.result-verdict {
+  margin: 6px 0 2px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #6fd47a;
+}
+#game-over.lost .result-verdict { color: #ff7a68; }
+
+/* The result flashed over the maps before the season card opens. */
+.winner-flash {
+  margin: 0 auto 6px;
+  max-width: 1100px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-align: center;
+  color: #6fd47a;
+  animation: flash-in 320ms ease-out;
+}
+.winner-flash.lost { color: #ff7a68; }
+@keyframes flash-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
 
 /* Intro: the Summer Classic story, shown on load and from "The story". */
 .intro-backdrop {

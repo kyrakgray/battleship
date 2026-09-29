@@ -7,6 +7,9 @@
   var PHASES = { PLACEMENT: 'placement', PLAYER_TURN: 'player-turn', RIVAL_TURN: 'rival-turn', OVER: 'over' };
   var RIVAL_DELAY_MS = 600;
   var LOG_PIN_SLACK_PX = 24;
+  /** How long the result is called over the maps before the season card. */
+  var RESULT_DELAY_MS = 2600;
+  var flashTimer = null;
 
   var state = {
     phase: PHASES.PLACEMENT,
@@ -49,7 +52,9 @@
     gameOver: document.getElementById('game-over'),
     gameOverKicker: document.getElementById('game-over-kicker'),
     gameOverTitle: document.getElementById('game-over-title'),
+    gameOverVerdict: document.getElementById('game-over-verdict'),
     gameOverSub: document.getElementById('game-over-sub'),
+    winnerFlash: document.getElementById('winner-flash'),
     gameOverStats: document.getElementById('game-over-stats'),
     btnOverClose: document.getElementById('btn-over-close'),
     btnOverNew: document.getElementById('btn-over-new'),
@@ -585,6 +590,7 @@
     els.gameOverTitle.textContent = wonByPlayer
       ? 'You collected the California Five'
       : 'Your rival collected the California Five';
+    els.gameOverVerdict.textContent = wonByPlayer ? 'You won!' : 'You lost';
     els.gameOverSub.textContent = wonByPlayer
       ? 'All five parks stamped in ' + you.days + ' trail days, with ' +
         you.daysLeft + ' left before Tioga Pass closes.'
@@ -599,13 +605,25 @@
         rival.markers + ' of ' + ROUTE_SQUARES),
       statRow('Dead ends', you.deadEnds, rival.deadEnds),
       statRow('Scouting accuracy', you.accuracy + '%', rival.accuracy + '%'),
-      statRow('Passport stamps', you.stamps + ' of 5', rival.stamps + ' of 5'),
-      statRow('Days left in the season', you.daysLeft, rival.daysLeft)
+      statRow('Passport stamps', you.stamps + ' of 5', rival.stamps + ' of 5')
     ].forEach(function (row) {
       els.gameOverStats.appendChild(row);
     });
 
     els.gameOver.classList.remove('hidden');
+  }
+
+  /** The result called over the maps, held there before the season card. */
+  function flashWinner(winner) {
+    var wonByPlayer = winner === 'player';
+    els.winnerFlash.textContent = wonByPlayer ? 'You won!' : 'Your rival won';
+    els.winnerFlash.classList.toggle('lost', !wonByPlayer);
+    els.winnerFlash.classList.remove('hidden');
+    window.clearTimeout(flashTimer);
+    flashTimer = window.setTimeout(function () {
+      els.winnerFlash.classList.add('hidden');
+      renderGameOver(winner);
+    }, RESULT_DELAY_MS);
   }
 
   function endGame(winner) {
@@ -620,7 +638,7 @@
     els.btnReveal.classList.toggle('hidden', winner === 'player');
     els.btnReveal.textContent = 'Reveal the Route You Missed';
     render();
-    renderGameOver(winner);
+    flashWinner(winner);
   }
 
   function handleRivalClick(row, col) {
@@ -689,6 +707,8 @@
     state.log = [];
     state.winner = null;
     state.revealRival = false;
+    window.clearTimeout(flashTimer);
+    els.winnerFlash.classList.add('hidden');
     els.btnReveal.classList.add('hidden');
     els.gameOver.classList.add('hidden');
     els.seal.classList.add('hidden');

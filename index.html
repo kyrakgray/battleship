@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The California Five</title>
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body class="planning">
 
@@ -43,9 +43,13 @@
     <path d="M4 10.5l4-4M9 10.5l4-4M14 10.5l4-4M4 16.5l4-4M9 16.5l4-4M14 16.5l4-4"
       stroke="#f4f1e8" stroke-width="1.6" fill="none"/>
   </symbol>
-  <!-- The bear off the state flag, for the wax seal on a sealed itinerary. -->
+  <!-- The bear off the state flag, walking across the planning map. -->
   <symbol id="icon-bear" viewBox="0 0 120 70">
     <path d="M8 56c2-6 4-9 7-11 1-6 4-11 9-14 4-2 9-3 14-3 6 0 10 1 14 3 5-4 11-7 18-8 5-1 9-2 12-5 1 3 0 6-2 8 4-1 8-1 12 1-2 2-5 3-8 4 6 2 11 6 14 11 3 4 4 9 4 14 0 3-1 5-3 5-2 0-3-2-3-4 0-3-1-6-3-8-1 4-4 7-8 9-6 3-13 4-20 4H30c-5 0-9 1-12 3-2 2-4 4-5 7z"/>
+  </symbol>
+  <!-- The outline of the state, imprinted in the wax seal. -->
+  <symbol id="icon-california" viewBox="0 0 60 96">
+    <path d="M2 4h38v27l18 40-1 8-3 9-18 1-5-9-8-4-3-6-7-13-4-10 1-7-5-11-2-9z"/>
   </symbol>
   <symbol id="icon-badge" viewBox="0 0 120 120">
     <path d="M60 4l50 18v34c0 30-21 51-50 60C31 107 10 86 10 56V22z" fill="#3d6b45"
@@ -146,10 +150,22 @@
     <h2 id="seal-title">Sealed and handed over</h2>
     <div class="envelope" role="img" aria-label="A sealed envelope carrying your five-park itinerary">
       <span class="envelope-flap"></span>
-      <span class="wax-seal">
-        <svg class="wax-bear" aria-hidden="true"><use href="#icon-bear"></use></svg>
-        <span class="wax-text">The CA 5</span>
-      </span>
+      <svg class="wax-seal" viewBox="0 0 120 120" role="img"
+        aria-label="A wax seal reading The California Five, Summer Classic, around the outline of the state">
+        <defs>
+          <path id="seal-arc-top" d="M14 60a46 46 0 0 1 92 0" fill="none"/>
+          <path id="seal-arc-bottom" d="M18 60a42 42 0 0 0 84 0" fill="none"/>
+        </defs>
+        <circle class="wax-blob" cx="60" cy="60" r="58"/>
+        <circle class="wax-ring" cx="60" cy="60" r="51"/>
+        <text class="wax-text">
+          <textPath href="#seal-arc-top" startOffset="50%">The California Five</textPath>
+        </text>
+        <text class="wax-text">
+          <textPath href="#seal-arc-bottom" startOffset="50%">Summer Classic</textPath>
+        </text>
+        <use class="wax-state" href="#icon-california" x="46" y="38" width="28" height="45"/>
+      </svg>
     </div>
     <p class="seal-note">Five parks, written out and sealed. Your rival is handing
       you theirs at the same moment — neither of you knows where the other's parks
@@ -171,6 +187,7 @@
         <h2 id="game-over-title">The California Five</h2>
       </div>
     </div>
+    <p class="result-verdict" id="game-over-verdict"></p>
     <p id="game-over-sub"></p>
     <table class="result-table">
       <thead>
@@ -241,10 +258,20 @@
     </div>
   </section>
 
+  <p class="winner-flash hidden" id="winner-flash" role="status" aria-live="assertive"></p>
+
   <section class="boards">
     <div class="board-wrap player-wrap" id="player-wrap">
       <h2 id="player-board-title">Your Route Map</h2>
       <p class="board-note" id="player-board-note">Lay out the five parks you will hand to your rival.</p>
+      <!-- The state flag, greyed back, sits under the route grid while planning. -->
+      <svg class="map-flag" viewBox="0 0 300 200" aria-hidden="true">
+        <rect class="flag-field" width="300" height="200"/>
+        <rect class="flag-stripe" y="178" width="300" height="22"/>
+        <polygon class="flag-star" points="40,22 44.2,34.2 57.1,34.4 46.9,42.2 50.6,54.6 40,47.2 29.4,54.6 33.2,42.2 22.9,34.4 35.8,34.2"/>
+        <use class="flag-bear" href="#icon-bear" x="62" y="66" width="176" height="103"/>
+        <text class="flag-words" x="150" y="194" text-anchor="middle">CALIFORNIA REPUBLIC</text>
+      </svg>
       <div class="board" id="player-board"></div>
       <div class="panel status-panel passport-book">
         <div class="passport-head">
@@ -269,7 +296,7 @@
   </section>
 </main>
 
-<script src="game.js?v=17"></script>
-<script src="ui.js?v=17"></script>
+<script src="game.js?v=18"></script>
+<script src="ui.js?v=18"></script>
 </body>
 </html>

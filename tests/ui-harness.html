@@ -107,6 +107,10 @@
       !visible($('rival-wrap')) && visible($('player-wrap')));
     check('the planning map is drawn as paper',
       w.getComputedStyle($('player-wrap')).backgroundImage !== 'none');
+    check('the planning map carries the state flag',
+      visible($('player-wrap').querySelector('.map-flag')) &&
+      /CALIFORNIA REPUBLIC/.test($('player-wrap').querySelector('.map-flag').textContent) &&
+      !!$('player-wrap').querySelector('.flag-bear'));
     check('passports stay closed until the season starts',
       d.querySelectorAll('.passport-book').length === 2 &&
       !visible(d.querySelector('.passport-book')));
@@ -119,10 +123,12 @@
 
     check('sealing the route opens the envelope window',
       !$('seal').classList.contains('hidden'));
-    check('the wax seal reads The CA 5', /The CA 5/.test($('seal').textContent));
-    check('the wax seal carries the California bear',
-      !!$('seal').querySelector('.wax-bear use[href="#icon-bear"]') &&
-      !!d.getElementById('icon-bear'));
+    check('the wax seal is lettered around its edge',
+      /The California Five/.test($('seal').querySelector('.wax-seal').textContent) &&
+      /Summer Classic/.test($('seal').querySelector('.wax-seal').textContent));
+    check('the wax seal is imprinted with the state',
+      !!$('seal').querySelector('.wax-state[href="#icon-california"]') &&
+      !!d.getElementById('icon-california'));
     check('the envelope is drawn back-side up',
       !!$('seal').querySelector('.envelope .envelope-flap'));
     check('the season has not started from the envelope alone',
@@ -194,9 +200,24 @@
       w.setTimeout(step, 80);
     }
 
+    var sawFlash = false;
+
+    function waitForResult(tries) {
+      if (!$('game-over').classList.contains('hidden') || tries > 60) return report();
+      w.setTimeout(function () { waitForResult(tries + 1); }, 100);
+    }
+
     function step(forced) {
       var over = $('phase-label').textContent.indexOf('Season over') !== -1;
-      if (over || forced) return report();
+      if (over && !sawFlash) {
+        sawFlash = true;
+        check('the result is called over the maps before the season card',
+          !$('winner-flash').classList.contains('hidden') &&
+          /You won!|Your rival won/.test($('winner-flash').textContent) &&
+          $('game-over').classList.contains('hidden'),
+          $('winner-flash').textContent);
+      }
+      if (over || forced) return waitForResult(0);
       if ($('phase-label').textContent.indexOf('rival is out scouting') !== -1) {
         return w.setTimeout(step, 80);
       }
@@ -224,11 +245,18 @@
         $('game-over-stats').querySelectorAll('th'), function (th) {
           return th.textContent;
         }).join(' | ');
+      check('the flash clears once the season card opens',
+        $('winner-flash').classList.contains('hidden'));
+      check('the result window calls the win or the loss',
+        /^You won!$|^You lost$/.test($('game-over-verdict').textContent),
+        $('game-over-verdict').textContent);
+      check('the season card drops the days-left row',
+        !/Days left in the season/.test($('game-over-stats').textContent));
       check('the result window reports both season cards',
-        $('game-over-stats').children.length === 6 &&
+        $('game-over-stats').children.length === 5 &&
         /Trail days spent/.test(statLabels) && /Squares found/.test(statLabels) &&
-        /Scouting accuracy/.test(statLabels) && /Passport stamps/.test(statLabels),
-        statLabels);
+        /Scouting accuracy/.test(statLabels) && /Passport stamps/.test(statLabels) &&
+        /Dead ends/.test(statLabels), statLabels);
       check('every season-card row carries a number for each explorer',
         Array.prototype.every.call($('game-over-stats').children, function (row) {
           return row.querySelectorAll('td').length === 2 &&
