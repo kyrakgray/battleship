@@ -31,6 +31,8 @@
     parkList: document.getElementById('park-list'),
     message: document.getElementById('message'),
     orientationLabel: document.getElementById('orientation-label'),
+    rotateLabel: document.getElementById('rotate-label'),
+    btnRotate: document.getElementById('btn-rotate'),
     placementControls: document.getElementById('placement-controls'),
     seasonControls: document.getElementById('season-controls'),
     btnRandom: document.getElementById('btn-random'),
@@ -386,6 +388,8 @@
   }
 
   function setMessage(text, kind) {
+    // The banner already carries the phase line; don't print it twice.
+    if (text && text === els.phaseLabel.textContent) text = '';
     els.message.textContent = text || '';
     els.message.className = 'message' + (kind ? ' ' + kind : '');
   }
@@ -486,8 +490,9 @@
 
   function setOrientation(orientation) {
     state.orientation = orientation;
-    els.orientationLabel.textContent =
-      orientation === B.ORIENTATIONS.HORIZONTAL ? 'Across' : 'Down';
+    var label = orientation === B.ORIENTATIONS.HORIZONTAL ? 'Across' : 'Down';
+    els.orientationLabel.textContent = label;
+    els.rotateLabel.textContent = label;
     renderPlayerBoard();
   }
 
@@ -771,6 +776,10 @@
       if (event.key === 'r' || event.key === 'R') {
         setOrientation(B.toggleOrientation(state.orientation));
       }
+    });
+
+    els.btnRotate.addEventListener('click', function () {
+      setOrientation(B.toggleOrientation(state.orientation));
     });
 
     els.btnRandom.addEventListener('click', function () {

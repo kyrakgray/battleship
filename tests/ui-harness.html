@@ -107,10 +107,30 @@
       !visible($('rival-wrap')) && visible($('player-wrap')));
     check('the planning map is drawn as paper',
       w.getComputedStyle($('player-wrap')).backgroundImage !== 'none');
+    var mapFlag = $('player-wrap').querySelector('.map-flag');
     check('the planning map carries the state flag',
-      visible($('player-wrap').querySelector('.map-flag')) &&
-      /CALIFORNIA REPUBLIC/.test($('player-wrap').querySelector('.map-flag').textContent) &&
-      !!$('player-wrap').querySelector('.flag-bear'));
+      visible(mapFlag) && /flag\.svg/.test(mapFlag.getAttribute('src')) &&
+      mapFlag.complete && mapFlag.naturalWidth > 0);
+
+    check('a rotate control is on the page for touch explorers',
+      visible($('btn-rotate')) && /Across/.test($('btn-rotate').textContent));
+    $('btn-rotate').click();
+    check('the rotate control turns the park down the map',
+      /Down/.test($('btn-rotate').textContent) &&
+      $('orientation-label').textContent === 'Down');
+    $('btn-rotate').click();
+    check('the rotate control turns it back across',
+      /Across/.test($('btn-rotate').textContent) &&
+      $('orientation-label').textContent === 'Across');
+
+    check('the log and the tracker share one row',
+      d.querySelector('.field-row').contains(d.querySelector('.log-panel')) &&
+      d.querySelector('.field-row').contains($('season-clock')) &&
+      d.querySelector('.field-row').contains($('status-bar')));
+    check('each passport sits with its own map',
+      $('player-wrap').querySelector('.board-row')
+        .contains($('status-player')) &&
+      $('rival-wrap').querySelector('.board-row').contains($('status-rival')));
     check('passports stay closed until the season starts',
       d.querySelectorAll('.passport-book').length === 2 &&
       !visible(d.querySelector('.passport-book')));
