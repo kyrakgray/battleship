@@ -3,6 +3,7 @@
   'use strict';
 
   var B = window.CaliforniaFive;
+  var sound = window.CaliforniaFiveAudio;
 
   var PHASES = { PLACEMENT: 'placement', PLAYER_TURN: 'player-turn', RIVAL_TURN: 'rival-turn', OVER: 'over' };
   var RIVAL_DELAY_MS = 600;
@@ -76,7 +77,13 @@
     calendarWeekday: document.getElementById('calendar-weekday'),
     calendarNote: document.getElementById('calendar-note'),
     closingDate: document.getElementById('closing-date'),
-    log: document.getElementById('log')
+    log: document.getElementById('log'),
+    titleWindow: document.getElementById('title-window'),
+    btnTitleGo: document.getElementById('btn-title-go'),
+    btnSoundEffects: document.getElementById('btn-sound-effects'),
+    btnVoiceover: document.getElementById('btn-voiceover'),
+    soundEffectsLabel: document.getElementById('sound-effects-label'),
+    voiceoverLabel: document.getElementById('voiceover-label')
   };
 
   var playerCells = {};
@@ -482,6 +489,7 @@
       return;
     }
 
+    sound.effect('draw');
     setMessage(B.getPark(parkId).name + ' penciled in at ' + B.coordLabel(row, col) + '.', 'info');
     state.selectedParkId = firstUnplacedParkId();
     renderParkCards();
@@ -522,6 +530,7 @@
   function openSeal() {
     if (!B.allParksPlaced(state.playerBoard)) return;
     els.seal.classList.remove('hidden');
+    sound.say('sealed');
   }
 
   function startGame() {
@@ -653,6 +662,7 @@
     if (!B.canScout(state.rivalBoard, row, col)) return;
 
     var result = B.scout(state.rivalBoard, row, col);
+    playDaySound('player', result);
     addLog('player', describeDay('player', row, col, result), playerDaysSpent());
     setMessage(
       result.result === B.DAY.TRAIL_MARKER
@@ -683,6 +693,7 @@
     }
 
     var result = B.scout(state.playerBoard, target.row, target.col);
+    playDaySound('rival', result);
     addLog('rival', describeDay('rival', target.row, target.col, result),
       rivalDaysSpent());
     renderPlayerBoard();
@@ -715,6 +726,7 @@
     state.winner = null;
     state.revealRival = false;
     window.clearTimeout(flashTimer);
+    sound.stopVoice();
     els.winnerFlash.classList.add('hidden');
     els.btnReveal.classList.add('hidden');
     els.gameOver.classList.add('hidden');
@@ -731,11 +743,34 @@
   function openHowTo() {
     els.intro.classList.add('hidden');
     els.howTo.classList.remove('hidden');
+    sound.say('briefing');
   }
 
   function openStory() {
     els.howTo.classList.add('hidden');
     els.intro.classList.remove('hidden');
+    sound.say('welcome');
+  }
+
+  /** One scouting day, heard: the square, and the stamp if it landed. */
+  function playDaySound(scout, result) {
+    if (result.result === B.DAY.TRAIL_MARKER) {
+      sound.effect('marker', result.parkId);
+    } else {
+      sound.effect('deadEnd');
+    }
+    if (!result.stamped) return;
+    sound.effect('stamp');
+    sound.say('found-' + (scout === 'player' ? 'you' : 'rival') + '-' + result.parkId);
+  }
+
+  function renderSoundToggles() {
+    var effectsOn = sound.isEffectsOn();
+    var voiceOn = sound.isVoiceOn();
+    els.soundEffectsLabel.textContent = effectsOn ? 'On' : 'Off';
+    els.voiceoverLabel.textContent = voiceOn ? 'On' : 'Off';
+    els.btnSoundEffects.setAttribute('aria-pressed', String(effectsOn));
+    els.btnVoiceover.setAttribute('aria-pressed', String(voiceOn));
   }
 
   function init() {
@@ -838,6 +873,22 @@
     });
     els.btnOverNew.addEventListener('click', newGame);
     els.btnNewGame.addEventListener('click', newGame);
+
+    renderSoundToggles();
+    els.btnSoundEffects.addEventListener('click', function () {
+      sound.setEffects(!sound.isEffectsOn());
+      renderSoundToggles();
+      sound.effect('draw');
+    });
+    els.btnVoiceover.addEventListener('click', function () {
+      sound.setVoice(!sound.isVoiceOn());
+      renderSoundToggles();
+    });
+    els.btnTitleGo.addEventListener('click', function () {
+      sound.unlock();
+      els.titleWindow.classList.add('hidden');
+      openStory();
+    });
   }
 
   init();

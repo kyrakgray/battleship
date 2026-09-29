@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The California Five</title>
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body class="planning">
 
@@ -68,7 +68,24 @@
     they were handed wins.</p>
 </header>
 
-<div class="intro-backdrop" id="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+<!-- The gate: the sound settings are chosen here, and the first click is
+     also what lets the browser play anything at all. -->
+<div class="intro-backdrop" id="title-window" role="dialog" aria-modal="true" aria-labelledby="title-heading">
+  <section class="intro title-card">
+    <svg class="intro-badge" role="img" aria-label="California National Park Summer Classic badge"><use href="#icon-badge"></use></svg>
+    <h2 id="title-heading">The California Five</h2>
+    <p class="intro-kicker">The California National Park Summer Classic</p>
+    <div class="sound-toggles">
+      <button id="btn-sound-effects" type="button" aria-pressed="true">Sound Effects: <span id="sound-effects-label">On</span></button>
+      <button id="btn-voiceover" type="button" aria-pressed="true">Voiceover: <span id="voiceover-label">On</span></button>
+    </div>
+    <div class="modal-actions">
+      <button id="btn-title-go" type="button">The Story →</button>
+    </div>
+  </section>
+</div>
+
+<div class="intro-backdrop hidden" id="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
   <section class="intro">
     <div class="intro-head">
       <svg class="intro-badge" role="img" aria-label="California National Park Summer Classic badge"><use href="#icon-badge"></use></svg>
@@ -273,7 +290,7 @@
       <h2 id="player-board-title">Your Route Map</h2>
       <p class="board-note" id="player-board-note">Lay out the five parks you will hand to your rival.</p>
       <!-- The state flag, greyed back, sits under the route grid while planning. -->
-      <img class="map-flag" src="flag.svg?v=21" alt="" aria-hidden="true">
+      <img class="map-flag" src="flag.svg?v=22" alt="" aria-hidden="true">
       <div class="board" id="player-board"></div>
     </div>
     <div class="panel status-panel passport-book player-passport" id="player-passport">
@@ -298,7 +315,8 @@
   </section>
 </main>
 
-<script src="game.js?v=21"></script>
-<script src="ui.js?v=21"></script>
+<script src="game.js?v=22"></script>
+<script src="audio.js?v=22"></script>
+<script src="ui.js?v=22"></script>
 </body>
 </html>

@@ -623,6 +623,27 @@ body.planning .player-wrap .cell.preview-invalid { background: var(--invalid); }
   height: 76px;
 }
 
+/* The title card: the game's name and the two sound settings. */
+.title-card {
+  max-width: 460px;
+  text-align: center;
+  padding: 32px 28px 24px;
+}
+.title-card .intro-badge { width: 96px; height: 96px; }
+.title-card h2 { margin: 12px 0 4px; font-size: 30px; }
+.title-card .intro-kicker { margin-bottom: 22px; }
+.title-card .modal-actions { justify-content: center; }
+
+.sound-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.sound-toggles button { min-width: 172px; }
+.sound-toggles button[aria-pressed="false"] { opacity: 0.6; }
+
 .park-icon {
   width: 22px;
   height: 22px;

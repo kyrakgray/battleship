@@ -37,7 +37,68 @@
 
     var $ = function (id) { return d.getElementById(id); };
 
+    // Sound cues are recorded rather than played, so the run stays silent
+    // and every cue can be asserted on.
+    var cues = [];
+    var spoken = [];
+    var audio = w.CaliforniaFiveAudio;
+    var voiceLines = audio.LINES;
+    audio.effect = function (name, detail) {
+      cues.push(detail ? name + ':' + detail : name);
+    };
+    audio.say = function (key) { spoken.push(key); };
+
     check('page title is the theme title', d.title === 'The California Five', d.title);
+    check('the title window opens ahead of the story',
+      !$('title-window').classList.contains('hidden') &&
+      $('intro').classList.contains('hidden'));
+    check('the title window names the game',
+      /The California Five/.test($('title-heading').textContent));
+    check('the title window carries both sound settings',
+      /Sound Effects/.test($('btn-sound-effects').textContent) &&
+      /Voiceover/.test($('btn-voiceover').textContent));
+    check('both sound settings start on',
+      $('sound-effects-label').textContent === 'On' &&
+      $('voiceover-label').textContent === 'On');
+
+    $('btn-sound-effects').click();
+    check('sound effects can be turned off',
+      $('sound-effects-label').textContent === 'Off' &&
+      $('btn-sound-effects').getAttribute('aria-pressed') === 'false' &&
+      audio.isEffectsOn() === false);
+    $('btn-sound-effects').click();
+    $('btn-voiceover').click();
+    check('the voiceover can be turned off',
+      $('voiceover-label').textContent === 'Off' &&
+      $('btn-voiceover').getAttribute('aria-pressed') === 'false' &&
+      audio.isVoiceOn() === false);
+    $('btn-voiceover').click();
+    check('both settings come back on',
+      audio.isEffectsOn() && audio.isVoiceOn() &&
+      $('sound-effects-label').textContent === 'On' &&
+      $('voiceover-label').textContent === 'On');
+
+    check('the ranger greets the explorer by name of the Classic',
+      voiceLines.welcome === 'Welcome to The California National Park Summer Classic.',
+      voiceLines.welcome);
+    check('the ranger introduces the briefing',
+      voiceLines.briefing ===
+        "Before you draw your route, here is a ranger's briefing on how to play.",
+      voiceLines.briefing);
+    check('the ranger calls the sealed itinerary',
+      voiceLines.sealed === 'Signed, sealed, and delivered.', voiceLines.sealed);
+    ['death-valley', 'joshua-tree', 'yosemite', 'kings-canyon', 'sequoia']
+      .forEach(function (id) {
+        check('the ranger has a line for both explorers finding ' + id,
+          /^You found /.test(voiceLines['found-you-' + id] || '') &&
+          /^Your rival found /.test(voiceLines['found-rival-' + id] || ''));
+      });
+
+    $('btn-title-go').click();
+    check('the title window hands off to the story',
+      $('title-window').classList.contains('hidden'));
+    check('the story window is spoken over',
+      spoken.indexOf('welcome') !== -1, spoken.join(','));
     check('intro window is visible on load',
       $('intro') && !$('intro').classList.contains('hidden'));
     check('intro names the Summer Classic',
@@ -65,6 +126,8 @@
     check('story hands off to the how-to window',
       $('intro').classList.contains('hidden') &&
       !$('how-to').classList.contains('hidden'));
+    check('the briefing is spoken over the how-to window',
+      spoken.indexOf('briefing') !== -1, spoken.join(','));
     check('how-to window enters the Classic',
       $('btn-how-to-close').textContent === 'Enter the Classic');
     check('how-to window can step back to the story',
@@ -142,9 +205,18 @@
     check('nothing on the page mentions cancellations',
       !/cancel/i.test(d.body.textContent));
 
+    var firstCell = $('player-board').querySelector('.cell');
+    firstCell.click();
+    check('drawing a park on the map is heard',
+      cues.indexOf('draw') !== -1, cues.join(','));
+    $('btn-reset').click();
+
     $('btn-random').click();
     check('random route enables seal & trade', !$('btn-start').disabled);
     $('btn-start').click();
+
+    check('the sealed itinerary is called out',
+      spoken.indexOf('sealed') !== -1, spoken.join(','));
 
     check('sealing the route opens the envelope window',
       !$('seal').classList.contains('hidden'));
@@ -308,6 +380,19 @@
         stamps.length ? stamps[0].textContent : '');
       check('reveal button only after a loss',
         $('btn-reveal').classList.contains('hidden') === /California Five/.test(msg));
+      check('a dead end sounds different from a trail marker',
+        cues.indexOf('deadEnd') !== -1 &&
+        cues.some(function (cue) { return /^marker:/.test(cue); }),
+        cues.slice(0, 12).join(','));
+      check('each park rings its own trail-marker cue',
+        cues.filter(function (cue) { return /^marker:/.test(cue); })
+          .filter(function (cue, i, all) { return all.indexOf(cue) === i; })
+          .length > 1);
+      check('a stamped park brings the stamp down',
+        cues.indexOf('stamp') !== -1);
+      check('a stamped park is called by name',
+        spoken.some(function (key) { return /^found-(you|rival)-/.test(key); }),
+        spoken.join(','));
       check('both square icons were drawn during the season',
         sawMarkerIcon && sawDeadEndIcon, 'marker: ' + sawMarkerIcon + ', dead end: ' + sawDeadEndIcon);
       check('field notes kept the whole season', $('log').children.length > 10,
